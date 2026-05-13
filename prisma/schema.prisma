@@ -1,0 +1,127 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "../node_modules/.prisma/client"
+}
+
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        Int      @id @default(autoincrement())
+  email     String   @unique
+  password  String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Goal {
+  id        Int      @id @default(autoincrement())
+  text      String
+  filename  String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model News {
+  id        Int      @id @default(autoincrement())
+  title     String
+  category  String
+  content   String
+  coverImage String
+  images    String[]
+  slug      String  @unique
+  createdAt DateTime @default(now())
+  date DateTime @default(now())
+  comments  Comment[]
+}
+
+model Video {
+  id        Int      @id @default(autoincrement())
+  title     String
+  videoPath String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model StCommittee {
+  id        Int      @id @default(autoincrement())
+  text      String
+  filename  String?
+  category  String?
+  number    Int
+  Date      DateTime
+  day       Int      
+  month     Int     
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+model AaIntroduction {
+  id      String @id @default(uuid())
+  content String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Introduction {
+  id      String @id @default(uuid())
+  content String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+
+model TechMember {
+  id         Int      @id @default(autoincrement())
+  position   String
+  name       String?
+  education  String
+  company    String
+  research   String
+  image      String
+}
+
+model Description {
+  id            Int      @id @default(autoincrement())
+  description   String
+}
+
+model Members {
+  id         Int      @id @default(autoincrement())
+  position   String
+  name       String?
+  education  String
+  company    String
+  parlament  String
+  image     String? 
+}
+
+model Mend {
+  id         Int      @id @default(autoincrement())
+  name       String?
+  company    String
+  image      String
+}
+
+model Report {
+  id        Int      @id @default(autoincrement())
+  title     String
+  filename  String?
+  year      Int
+  type      String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Comment {
+  id        Int      @id @default(autoincrement())
+  content   String
+  name      String
+  createdAt DateTime @default(now())
+  likes     Int      @default(0)
+  dislikes  Int      @default(0)
+  newsId    Int
+  news      News     @relation(fields: [newsId], references: [id])
+}

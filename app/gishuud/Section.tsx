@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import Image from 'next/image';
 import { FiChevronDown, FiUser } from 'react-icons/fi';
 
 type Member = {
@@ -52,10 +53,12 @@ export default function Section({ title, color, members }: SectionProps) {
             >
               <div className="relative h-[280px] bg-gray-100 overflow-hidden">
                 {imgSrc ? (
-                  <img
+                  <Image
                     src={imgSrc}
                     alt={m.name ?? ''}
-                    className="w-full h-full object-cover object-center transition-transform duration-700 group-hover:scale-105"
+                    fill
+                    sizes="(max-width: 640px) 100vw, (max-width: 1280px) 50vw, 33vw"
+                    className="object-cover object-center transition-transform duration-700 group-hover:scale-105"
                   />
                 ) : (
                   <div className="w-full h-full flex items-center justify-center bg-gray-50">

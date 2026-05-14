@@ -14,7 +14,9 @@ const normPath = (p: string) => {
   return s.startsWith('/') ? s : `/${s}`;
 };
 
-function NextArrow(props: any) {
+type ArrowProps = { onClick?: () => void };
+
+function NextArrow(props: ArrowProps) {
   return (
     <button
       onClick={props.onClick}
@@ -25,7 +27,7 @@ function NextArrow(props: any) {
   );
 }
 
-function PrevArrow(props: any) {
+function PrevArrow(props: ArrowProps) {
   return (
     <button
       onClick={props.onClick}

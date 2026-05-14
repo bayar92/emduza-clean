@@ -1,4 +1,4 @@
-import { Mark, mergeAttributes } from "@tiptap/core";
+import { Mark } from "@tiptap/core";
 
 export interface FontSizeOptions {
   types: string[];

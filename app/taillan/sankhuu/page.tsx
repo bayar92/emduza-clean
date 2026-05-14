@@ -13,9 +13,10 @@ const subLinks = [
 ];
 
 export default async function SankhuuPage() {
-  const reports = await prisma.$queryRawUnsafe<any[]>(
-    `SELECT * FROM "Report" WHERE type = 'financial' ORDER BY year DESC`
-  );
+  const reports = await prisma.report.findMany({
+    where: { type: 'financial' },
+    orderBy: { year: 'desc' },
+  });
 
   return (
     <div className="min-h-screen bg-[#F8FAFC]">

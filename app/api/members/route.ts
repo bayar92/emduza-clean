@@ -2,6 +2,7 @@ import { prisma } from "@/utils/prisma";
 import { NextResponse } from "next/server";
 import { validateImage } from "@/utils/fileValidation";
 import { saveUploadedFile } from "@/utils/uploadFile";
+import { sanitizeHtml } from "@/utils/sanitize";
 
 export async function GET() {
   try {
@@ -9,7 +10,7 @@ export async function GET() {
       orderBy: { id: "asc" },
     });
     return NextResponse.json(list);
-  } catch (err) {
+  } catch {
     return NextResponse.json(
       { error: "Error fetching members" },
       { status: 500 }
@@ -40,11 +41,18 @@ export async function POST(req: Request) {
     const imagePath = await saveUploadedFile(file, "img/tech", "member");
 
     const newM = await prisma.members.create({
-      data: { position, name, education, company, parlament, image: imagePath },
+      data: {
+        position,
+        name,
+        education: sanitizeHtml(education),
+        company: sanitizeHtml(company),
+        parlament: sanitizeHtml(parlament),
+        image: imagePath,
+      },
     });
 
     return NextResponse.json(newM, { status: 201 });
-  } catch (err) {
+  } catch {
     return NextResponse.json(
       { error: "Error creating member" },
       { status: 500 }
@@ -60,7 +68,7 @@ export async function DELETE(req: Request) {
     await prisma.members.delete({ where: { id } });
 
     return new NextResponse(null, { status: 204 });
-  } catch (err) {
+  } catch {
     return NextResponse.json(
       { error: "Error deleting member" },
       { status: 500 }
@@ -99,11 +107,18 @@ export async function PUT(req: Request) {
 
     const updated = await prisma.members.update({
       where: { id },
-      data: { position, name, education, company, parlament, image: imagePath },
+      data: {
+        position,
+        name,
+        education: sanitizeHtml(education),
+        company: sanitizeHtml(company),
+        parlament: sanitizeHtml(parlament),
+        image: imagePath,
+      },
     });
 
     return NextResponse.json(updated);
-  } catch (err) {
+  } catch {
     return NextResponse.json(
       { error: "Error updating member" },
       { status: 500 }

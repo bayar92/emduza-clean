@@ -1,10 +1,9 @@
 import jwt from 'jsonwebtoken';
+import { env } from './env';
 
 export function isTokenValid(token: string) {
   try {
-    const secret = process.env.JWT_SECRET;
-    if (!secret) return false;
-    const decoded = jwt.verify(token, secret) as jwt.JwtPayload;
+    const decoded = jwt.verify(token, env.JWT_SECRET) as jwt.JwtPayload;
     return decoded.exp ? decoded.exp > Date.now() / 1000 : false;
   } catch {
     return false;

@@ -5,6 +5,7 @@ import path from 'path';
 import { v4 as uuidv4 } from 'uuid';
 import { validateImage } from '@/utils/fileValidation';
 import { saveUploadedFile } from '@/utils/uploadFile';
+import { sanitizeHtml } from '@/utils/sanitize';
 
 async function saveFile(file: File, folder: string) {
   return saveUploadedFile(file, folder, uuidv4());
@@ -66,7 +67,7 @@ export async function POST(req: Request) {
       data: {
         title,
         category,
-        content,
+        content: sanitizeHtml(content),
         coverImage: coverPath,
         images: imagePaths,
         slug,
@@ -91,7 +92,7 @@ export async function DELETE(req: Request) {
     });
 
     return new NextResponse(null, { status: 204 });
-  } catch (err) {
+  } catch {
     return NextResponse.json({ error: 'Delete failed' }, { status: 500 });
   }
 }
@@ -156,7 +157,7 @@ export async function PUT(req: Request) {
       data: {
         title,
         category,
-        content,
+        content: sanitizeHtml(content),
         coverImage: coverPath,
         images: updatedImages,
         date: dateObj,

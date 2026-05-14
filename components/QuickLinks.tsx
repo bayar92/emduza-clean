@@ -97,7 +97,7 @@ const QuickLinks = () => {
             return (
               <Tag
                 key={i}
-                {...(extraProps as any)}
+                {...extraProps}
                 className={`group flex flex-col items-center text-center p-5 rounded-2xl bg-white border transition-all duration-300 hover:-translate-y-1 hover:shadow-lg ${item.border}`}
               >
                 <div

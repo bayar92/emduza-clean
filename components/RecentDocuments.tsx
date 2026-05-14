@@ -2,7 +2,7 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import Link from 'next/link';
-import { FiFile, FiDownload, FiChevronRight, FiCalendar } from 'react-icons/fi';
+import { FiDownload, FiChevronRight, FiCalendar } from 'react-icons/fi';
 
 type DocItem = {
   id: number;

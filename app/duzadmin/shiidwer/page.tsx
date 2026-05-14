@@ -4,6 +4,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import withAuth from '@/components/withAuth';
 import axios from 'axios';
 import Head from 'next/head';
+import { useDialog } from '@/components/useDialog';
 import {
   FiEdit,
   FiTrash2,
@@ -17,8 +18,18 @@ import {
   FiChevronRight,
 } from 'react-icons/fi';
 
+type CommitteeItem = {
+  id: number;
+  text: string;
+  filename: string | null;
+  category: string;
+  number: number;
+  Date: string;
+};
+
 const ShiidwerPage = () => {
-  const [committee, setCommittee] = useState([]);
+  const { confirm, dialog } = useDialog();
+  const [committee, setCommittee] = useState<CommitteeItem[]>([]);
   const [committeeText, setCommitteeText] = useState('');
   const [category, setCategory] = useState('УИХ, Байнгын хорооны шийдвэр');
   const [file, setFile] = useState<File | null>(null);
@@ -79,8 +90,9 @@ const ShiidwerPage = () => {
       setFile(null);
       setEditId(null);
       fetchCommittee();
-    } catch (err: any) {
-      setMessage('Алдаа гарлаа: ' + err.message);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      setMessage('Алдаа гарлаа: ' + msg);
     } finally {
       setSaveLoading(false);
       setTimeout(() => setMessage(''), 3000);
@@ -88,16 +100,16 @@ const ShiidwerPage = () => {
   };
 
   const handleDelete = async (id: number) => {
-    if (!confirm('Та устгахдаа итгэлтэй байна уу?')) return;
+    if (!(await confirm('Та устгахдаа итгэлтэй байна уу?'))) return;
     await axios.delete(`/api/standingCommittee?id=${id}`);
     fetchCommittee();
   };
 
-  const handleEdit = (c: any) => {
+  const handleEdit = (c: CommitteeItem) => {
     setEditId(c.id);
     setCommitteeText(c.text);
     setCategory(c.category);
-    setNumber(c.number);
+    setNumber(String(c.number));
     setDate(c.Date.split('T')[0]);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
@@ -114,6 +126,7 @@ const ShiidwerPage = () => {
 
   return (
     <div className="min-h-screen bg-[#F8FAFC] pb-20">
+      {dialog}
       <Head>
         <title>Эрх зүй | Admin</title>
       </Head>
@@ -278,7 +291,7 @@ const ShiidwerPage = () => {
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-50">
-                {committee.map((c: any) => (
+                {committee.map((c) => (
                   <tr
                     key={c.id}
                     className="group hover:bg-blue-50/30 transition-colors"

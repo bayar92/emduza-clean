@@ -1,4 +1,5 @@
 import { prisma } from '@/utils/prisma';
+import { env } from '@/utils/env';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import { NextResponse } from 'next/server';
@@ -65,15 +66,7 @@ export async function POST(req: Request) {
       );
     }
 
-    const secret = process.env.JWT_SECRET;
-    if (!secret) {
-      return Response.json(
-        { error: 'Server configuration error' },
-        { status: 500 }
-      );
-    }
-
-    const token = jwt.sign({ email }, secret, { expiresIn: '8h' });
+    const token = jwt.sign({ email }, env.JWT_SECRET, { expiresIn: '8h' });
 
     resetRateLimit(ip);
 

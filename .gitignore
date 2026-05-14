@@ -41,3 +41,7 @@ next-env.d.ts
 
 /app/generated/prisma
 .env
+
+# archives
+*.zip
+*.tar.gz

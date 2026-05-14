@@ -1,35 +1,41 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import DOMPurify from 'dompurify';
+import { useDialog } from '@/components/useDialog';
 import {
   FiEdit3,
   FiTrash2,
   FiPlus,
   FiGrid,
-  FiList,
-  FiSearch,
   FiCalendar,
   FiChevronLeft,
   FiChevronRight,
 } from 'react-icons/fi';
 
+type NewsItem = {
+  id: number;
+  title: string;
+  slug: string;
+  category: string;
+  content: string;
+  coverImage: string;
+  createdAt: string;
+};
+
 export default function Medee() {
   const router = useRouter();
+  const { confirm, alert, dialog } = useDialog();
 
-  const [news, setNews] = useState<any[]>([]);
+  const [news, setNews] = useState<NewsItem[]>([]);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
   const perPage = 12;
 
-  useEffect(() => {
-    fetchNews();
-  }, []);
-
-  const fetchNews = async () => {
+  const fetchNews = useCallback(async () => {
     setLoading(true);
     try {
       const res = await fetch('/api/news');
@@ -40,22 +46,26 @@ export default function Medee() {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    fetchNews();
+  }, [fetchNews]);
 
   const handleDelete = async (id: number) => {
-    if (!confirm('Та энэ мэдээг устгахдаа итгэлтэй байна уу?')) return;
+    if (!(await confirm('Та энэ мэдээг устгахдаа итгэлтэй байна уу?'))) return;
 
     try {
       await fetch(`/api/news?id=${id}`, {
         method: 'DELETE',
       });
       fetchNews();
-    } catch (err) {
-      alert('Устгахад алдаа гарлаа');
+    } catch {
+      await alert('Устгахад алдаа гарлаа');
     }
   };
 
-  const handleEdit = (item: any) => {
+  const handleEdit = (item: NewsItem) => {
     router.push(`/duzadmin/medeeNemeh?slug=${item.slug}`);
   };
 
@@ -72,6 +82,7 @@ export default function Medee() {
 
   return (
     <div className="min-h-screen bg-[#F8FAFC] pb-20">
+      {dialog}
       <div className="bg-white/80 backdrop-blur-md border-b sticky top-0 z-20">
         <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
           <div>

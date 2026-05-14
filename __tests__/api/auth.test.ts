@@ -13,7 +13,6 @@ vi.mock("jsonwebtoken", () => ({
 }));
 
 import bcrypt from "bcryptjs";
-import jwt from "jsonwebtoken";
 
 const { POST: loginPOST } = await import("@/app/api/auth/login/route");
 const { POST: logoutPOST } = await import("@/app/api/auth/logout/route");

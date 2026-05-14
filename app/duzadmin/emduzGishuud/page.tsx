@@ -1,10 +1,12 @@
 'use client';
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
+import Image from 'next/image';
 import withAuth from '@/components/withAuth';
 import Head from 'next/head';
 import { useRouter } from 'next/navigation';
 import SuccessModal from '@/components/SuccessModal';
+import { useDialog } from '@/components/useDialog';
 import { FiEdit2, FiTrash2, FiPlus, FiUsers, FiSearch } from 'react-icons/fi';
 
 type Member = {
@@ -19,6 +21,7 @@ type Member = {
 };
 
 const EmduzGishuud = () => {
+  const { confirm, dialog } = useDialog();
   const [members, setMembers] = useState<Member[]>([]);
   const [loading, setLoading] = useState(true);
   const [modalOpen, setModalOpen] = useState(false);
@@ -36,7 +39,7 @@ const EmduzGishuud = () => {
             new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
         );
         setMembers(all);
-      } catch (err) {
+      } catch {
         setModalMsg('Гишүүдийн жагсаалт татаж чадсангүй');
         setModalOpen(true);
       } finally {
@@ -57,13 +60,13 @@ const EmduzGishuud = () => {
   };
 
   const handleDelete = async (id: number) => {
-    if (!confirm('Та энэ гишүүнийг устгахдаа итгэлтэй байна уу?')) return;
+    if (!(await confirm('Та энэ гишүүнийг устгахдаа итгэлтэй байна уу?'))) return;
     try {
       await axios.delete(`/api/members?id=${id}`);
       setMembers((prev) => prev.filter((item) => item.id !== id));
       setModalMsg('Амжилттай устгалаа');
       setModalOpen(true);
-    } catch (err) {
+    } catch {
       setModalMsg('Устгаж чадсангүй');
       setModalOpen(true);
     }
@@ -88,6 +91,7 @@ const EmduzGishuud = () => {
 
   return (
     <div className="min-h-screen bg-[#F8FAFC]">
+      {dialog}
       <Head>
         <title>ЭМДҮЗ-ийн Гишүүд</title>
       </Head>
@@ -159,10 +163,12 @@ const EmduzGishuud = () => {
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="relative w-12 h-12 rounded-full overflow-hidden shadow-sm border-2 border-white bg-gray-50 flex items-center justify-center group-hover:scale-105 transition-transform">
                         {item.image ? (
-                          <img
+                          <Image
                             src={item.image.startsWith('/') ? item.image : `/${item.image}`}
                             alt={item.name}
-                            className="object-cover w-full h-full"
+                            fill
+                            sizes="48px"
+                            className="object-cover"
                           />
                         ) : (
                           <span className="text-gray-400 font-bold text-xs uppercase">

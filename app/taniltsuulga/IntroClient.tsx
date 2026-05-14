@@ -1,62 +1,59 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useMemo } from 'react';
 import DOMPurify from 'dompurify';
 
 interface IntroData {
-  id: number;
+  id: string | number;
   content: string | null;
 }
 
 export default function IntroClient({ intro }: { intro: IntroData }) {
-  const [safeHTML, setSafeHTML] = useState('');
-
-  useEffect(() => {
-    setSafeHTML(
-      DOMPurify.sanitize(intro.content ?? '', {
-        ALLOWED_TAGS: [
-          'p',
-          'span',
-          'div',
-          'br',
-          'b',
-          'i',
-          'strong',
-          'em',
-          'a',
-          'ul',
-          'ol',
-          'li',
-          'h1',
-          'h2',
-          'h3',
-          'h4',
-          'h5',
-          'h6',
-          'blockquote',
-          'pre',
-          'code',
-          'img',
-          'table',
-          'thead',
-          'tbody',
-          'tr',
-          'th',
-          'td',
-        ],
-        ALLOWED_ATTR: [
-          'class',
-          'href',
-          'target',
-          'src',
-          'alt',
-          'title',
-          'width',
-          'height',
-          'style',
-        ],
-      })
-    );
+  const safeHTML = useMemo(() => {
+    if (typeof window === 'undefined') return '';
+    return DOMPurify.sanitize(intro.content ?? '', {
+      ALLOWED_TAGS: [
+        'p',
+        'span',
+        'div',
+        'br',
+        'b',
+        'i',
+        'strong',
+        'em',
+        'a',
+        'ul',
+        'ol',
+        'li',
+        'h1',
+        'h2',
+        'h3',
+        'h4',
+        'h5',
+        'h6',
+        'blockquote',
+        'pre',
+        'code',
+        'img',
+        'table',
+        'thead',
+        'tbody',
+        'tr',
+        'th',
+        'td',
+      ],
+      ALLOWED_ATTR: [
+        'class',
+        'href',
+        'target',
+        'src',
+        'alt',
+        'title',
+        'width',
+        'height',
+        'style',
+      ],
+    });
   }, [intro.content]);
 
   return (

@@ -6,7 +6,6 @@ import {
   FiFileText,
   FiVideo,
   FiAward,
-  FiAirplay,
 } from 'react-icons/fi';
 
 const StatsSection = () => {

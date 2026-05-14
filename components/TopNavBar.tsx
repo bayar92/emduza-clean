@@ -149,17 +149,19 @@ const TopNavBar = () => {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const pathname = usePathname();
+  const [prevPathname, setPrevPathname] = useState(pathname);
   const closeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  if (pathname !== prevPathname) {
+    setPrevPathname(pathname);
+    setMobileOpen(false);
+  }
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 20);
     window.addEventListener('scroll', onScroll);
     return () => window.removeEventListener('scroll', onScroll);
   }, []);
-
-  useEffect(() => {
-    setMobileOpen(false);
-  }, [pathname]);
 
   const handleMouseEnter = (id: string) => {
     if (closeTimer.current) clearTimeout(closeTimer.current);
@@ -262,7 +264,7 @@ const TopNavBar = () => {
                         return (
                           <Tag
                             key={i}
-                            {...(extraProps as any)}
+                            {...extraProps}
                             className={`flex items-center gap-3 mx-2 px-3 py-2.5 rounded-xl transition-all group ${
                               isChildActive
                                 ? 'bg-blue-50 text-blue-700'
@@ -401,7 +403,7 @@ const MobileAccordion = ({
             return (
               <Tag
                 key={i}
-                {...(extraProps as any)}
+                {...extraProps}
                 className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-[12px] font-semibold transition-colors ${
                   isChildActive
                     ? 'bg-blue-50 text-blue-700'

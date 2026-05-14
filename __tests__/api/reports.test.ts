@@ -7,19 +7,29 @@ vi.mock("fs/promises", () => ({
 }));
 
 const mockPrisma = {
-  $executeRawUnsafe: vi.fn().mockResolvedValue(undefined),
-  $queryRawUnsafe: vi.fn(),
+  report: {
+    findMany: vi.fn(),
+    findUnique: vi.fn(),
+    create: vi.fn(),
+    delete: vi.fn(),
+  },
 };
 vi.mock("@/utils/prisma", () => ({ prisma: mockPrisma }));
 
 const { GET, POST, DELETE } = await import("@/app/api/reports/route");
 
-const REPORT = { id: 1, title: "2024 он", filename: "report.pdf", year: 2024, type: "annual", createdAt: new Date(), updatedAt: new Date() };
+const REPORT = {
+  id: 1,
+  title: "2024 он",
+  filename: "report.pdf",
+  year: 2024,
+  type: "annual",
+  createdAt: new Date(),
+  updatedAt: new Date(),
+};
 
 beforeEach(() => {
   vi.clearAllMocks();
-  // ensureTable always succeeds
-  mockPrisma.$executeRawUnsafe.mockResolvedValue(undefined);
 });
 
 // ---------------------------------------------------------------------------
@@ -27,7 +37,7 @@ beforeEach(() => {
 // ---------------------------------------------------------------------------
 describe("GET /api/reports", () => {
   it("returns all reports", async () => {
-    mockPrisma.$queryRawUnsafe.mockResolvedValue([REPORT]);
+    mockPrisma.report.findMany.mockResolvedValue([REPORT]);
     const req = new Request("http://localhost/api/reports");
     const res = await GET(req);
     expect(res.status).toBe(200);
@@ -37,22 +47,23 @@ describe("GET /api/reports", () => {
   });
 
   it("filters by type when provided", async () => {
-    mockPrisma.$queryRawUnsafe.mockResolvedValue([REPORT]);
+    mockPrisma.report.findMany.mockResolvedValue([REPORT]);
     const req = new Request("http://localhost/api/reports?type=annual");
     await GET(req);
-    expect(mockPrisma.$queryRawUnsafe).toHaveBeenCalledWith(
-      expect.stringContaining("WHERE type"),
-      "annual"
-    );
+    expect(mockPrisma.report.findMany).toHaveBeenCalledWith({
+      where: { type: "annual" },
+      orderBy: { year: "desc" },
+    });
   });
 
   it("returns all without filter when type is absent", async () => {
-    mockPrisma.$queryRawUnsafe.mockResolvedValue([REPORT]);
+    mockPrisma.report.findMany.mockResolvedValue([REPORT]);
     const req = new Request("http://localhost/api/reports");
     await GET(req);
-    // Called with query that has no WHERE
-    const call = mockPrisma.$queryRawUnsafe.mock.calls[0];
-    expect(call[0]).not.toContain("WHERE");
+    expect(mockPrisma.report.findMany).toHaveBeenCalledWith({
+      where: undefined,
+      orderBy: { year: "desc" },
+    });
   });
 });
 
@@ -61,7 +72,7 @@ describe("GET /api/reports", () => {
 // ---------------------------------------------------------------------------
 describe("POST /api/reports", () => {
   it("creates a report without file and returns 201", async () => {
-    mockPrisma.$queryRawUnsafe.mockResolvedValue([REPORT]);
+    mockPrisma.report.create.mockResolvedValue(REPORT);
     const form = new FormData();
     form.append("title", "2024 он");
     form.append("year", "2024");
@@ -72,7 +83,7 @@ describe("POST /api/reports", () => {
   });
 
   it("creates a report with file", async () => {
-    mockPrisma.$queryRawUnsafe.mockResolvedValue([REPORT]);
+    mockPrisma.report.create.mockResolvedValue(REPORT);
     const form = new FormData();
     form.append("title", "2024 он");
     form.append("year", "2024");
@@ -97,19 +108,18 @@ describe("POST /api/reports", () => {
 // ---------------------------------------------------------------------------
 describe("DELETE /api/reports", () => {
   it("deletes report without file and returns 204", async () => {
-    mockPrisma.$queryRawUnsafe.mockResolvedValue([{ filename: null }]);
+    mockPrisma.report.findUnique.mockResolvedValue({ filename: null });
+    mockPrisma.report.delete.mockResolvedValue(REPORT);
     const req = new Request("http://localhost/api/reports?id=1", { method: "DELETE" });
     const res = await DELETE(req);
     expect(res.status).toBe(204);
-    expect(mockPrisma.$executeRawUnsafe).toHaveBeenCalledWith(
-      expect.stringContaining("DELETE FROM"),
-      1
-    );
+    expect(mockPrisma.report.delete).toHaveBeenCalledWith({ where: { id: 1 } });
   });
 
   it("deletes file from disk when filename exists", async () => {
     const { unlink } = await import("fs/promises");
-    mockPrisma.$queryRawUnsafe.mockResolvedValue([{ filename: "report.pdf" }]);
+    mockPrisma.report.findUnique.mockResolvedValue({ filename: "report.pdf" });
+    mockPrisma.report.delete.mockResolvedValue(REPORT);
     const req = new Request("http://localhost/api/reports?id=1", { method: "DELETE" });
     await DELETE(req);
     expect(unlink).toHaveBeenCalledWith(expect.stringContaining("report.pdf"));

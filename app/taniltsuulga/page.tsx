@@ -43,8 +43,7 @@ export default async function Page() {
 
             <main className="flex-1 min-w-0 bg-white rounded-2xl border border-gray-100 shadow-sm p-8 md:p-10">
               {intro ? (
-                // <IntroClient intro={intro} />
-                <IntroClient intro={intro as any} />
+                <IntroClient intro={intro} />
               ) : (
                 <div className="py-16 text-center text-gray-400 text-sm">
                   Танилцуулгын мэдээлэл байхгүй байна

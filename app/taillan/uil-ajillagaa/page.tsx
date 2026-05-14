@@ -17,9 +17,10 @@ const subLinks = [
 ];
 
 export default async function UilAjillagaaPage() {
-  const reports = await prisma.$queryRawUnsafe<any[]>(
-    `SELECT * FROM "Report" WHERE type = 'activity' ORDER BY year DESC`
-  );
+  const reports = await prisma.report.findMany({
+    where: { type: 'activity' },
+    orderBy: { year: 'desc' },
+  });
 
   return (
     <div className="min-h-screen bg-[#F8FAFC]">

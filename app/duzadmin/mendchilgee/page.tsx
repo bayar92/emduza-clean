@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import Image from 'next/image';
 import axios from 'axios';
 import Head from 'next/head';
 import withAuth from '@/components/withAuth';
@@ -8,7 +9,6 @@ import dynamic from 'next/dynamic';
 import SuccessModal from '@/components/SuccessModal';
 import {
   FiSave,
-  FiArrowLeft,
   FiImage,
   FiUser,
   FiMessageSquare,
@@ -45,7 +45,7 @@ const Mendchilgee = () => {
           }
           setExistingId(response.data.id);
         }
-      } catch (error) {
+      } catch {
         setError('Мэдээлэл татахад алдаа гарлаа');
       } finally {
         setLoading(false);
@@ -98,8 +98,10 @@ const Mendchilgee = () => {
 
       setModalMessage(msg);
       setModalOpen(true);
-    } catch (error: any) {
-      const serverMsg = error?.response?.data?.error;
+    } catch (error) {
+      const serverMsg = axios.isAxiosError(error)
+        ? error.response?.data?.error
+        : null;
       setError(serverMsg || 'Хадгалахад алдаа гарлаа');
     } finally {
       setSaveLoading(false);
@@ -137,7 +139,7 @@ const Mendchilgee = () => {
           </div>
 
           <button
-            onClick={(e: any) => handleSubmit(e)}
+            onClick={(e) => handleSubmit(e as unknown as React.FormEvent)}
             disabled={saveLoading}
             className="flex items-center gap-2 px-6 py-2.5 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white text-sm font-bold rounded-xl shadow-lg shadow-blue-100 transition-all active:scale-95"
           >
@@ -192,10 +194,13 @@ const Mendchilgee = () => {
               <div className="flex flex-col items-center">
                 <div className="relative group w-full aspect-square max-w-[240px] mb-8">
                   {imagePreview ? (
-                    <img
+                    <Image
                       src={imagePreview}
                       alt="Preview"
-                      className="w-full h-full object-cover rounded-[24px] shadow-2xl border-4 border-white ring-1 ring-gray-100"
+                      fill
+                      sizes="240px"
+                      unoptimized
+                      className="object-cover rounded-[24px] shadow-2xl border-4 border-white ring-1 ring-gray-100"
                     />
                   ) : (
                     <div className="w-full h-full rounded-[24px] bg-gray-50 border-2 border-dashed border-gray-200 flex flex-col items-center justify-center text-gray-400">

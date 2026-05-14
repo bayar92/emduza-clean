@@ -5,6 +5,7 @@ import { useRouter, usePathname } from 'next/navigation';
 import Link from 'next/link';
 import axios from 'axios';
 import Image from 'next/image';
+import { useDialog } from './useDialog';
 import {
   FiHome,
   FiClipboard,
@@ -54,9 +55,10 @@ const AdminNavBar = () => {
   const router = useRouter();
   const pathname = usePathname();
   const [openMenu, setOpenMenu] = useState('');
+  const { confirm, dialog } = useDialog();
 
   const handleLogout = async () => {
-    if (!confirm('Системээс гарах уу?')) return;
+    if (!(await confirm('Системээс гарах уу?'))) return;
     try {
       await axios.post('/api/auth/logout');
       router.push('/login');
@@ -72,6 +74,7 @@ const AdminNavBar = () => {
 
   return (
     <div className="h-screen w-72 bg-white border-r border-gray-100 shadow-sm fixed left-0 top-0 overflow-y-auto flex flex-col z-30">
+      {dialog}
       <div className="px-8 py-8 mb-4">
         <div className="flex items-center gap-3">
           <div className="bg-blue-600 p-2 rounded-xl shadow-lg shadow-blue-100">

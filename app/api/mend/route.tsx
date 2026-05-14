@@ -1,6 +1,7 @@
 import { prisma } from "@/utils/prisma";
 import { validateImage } from "@/utils/fileValidation";
 import { saveUploadedFile } from "@/utils/uploadFile";
+import { sanitizeHtml } from "@/utils/sanitize";
 
 export const dynamic = "force-dynamic";
 
@@ -8,7 +9,7 @@ export async function GET() {
   try {
     const content = await prisma.mend.findFirst();
     return Response.json(content);
-  } catch (err) {
+  } catch {
     return Response.json({ error: "Error fetching content" }, { status: 500 });
   }
 }
@@ -34,7 +35,7 @@ export async function POST(req: Request) {
     const newContent = await prisma.mend.create({
       data: {
         name,
-        company,
+        company: sanitizeHtml(company),
         image: imagePath ?? "",
       },
     });
@@ -58,7 +59,10 @@ export async function PUT(req: Request) {
     if (!existing)
       return Response.json({ error: "Not found" }, { status: 404 });
 
-    const updatedData: { name: string; company: string; image?: string } = { name, company };
+    const updatedData: { name: string; company: string; image?: string } = {
+      name,
+      company: sanitizeHtml(company),
+    };
 
     if (file && file.size > 0) {
       const validationError = validateImage(file);

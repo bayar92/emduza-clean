@@ -1,6 +1,7 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useMemo } from 'react';
+import Image from 'next/image';
 import DOMPurify from 'dompurify';
 import { FiUser } from 'react-icons/fi';
 
@@ -12,10 +13,9 @@ interface IntroData {
 }
 
 export default function IntroClient({ intro }: { intro: IntroData }) {
-  const [cleanContent, setCleanContent] = useState('');
-
-  useEffect(() => {
-    setCleanContent(DOMPurify.sanitize(intro.company ?? ''));
+  const cleanContent = useMemo(() => {
+    if (typeof window === 'undefined') return '';
+    return DOMPurify.sanitize(intro.company ?? '');
   }, [intro.company]);
 
   return (
@@ -31,10 +31,12 @@ export default function IntroClient({ intro }: { intro: IntroData }) {
         <div className="md:w-[300px] flex-shrink-0">
           <div className="relative w-full aspect-[3/4] uppercase rounded-2xl overflow-hidden bg-gray-100 shadow-md">
             {intro.image ? (
-              <img
+              <Image
                 src={intro.image}
                 alt={intro.name ?? 'Дарга'}
-                className="w-full h-full object-cover object-top"
+                fill
+                sizes="300px"
+                className="object-cover object-top"
               />
             ) : (
               <div className="w-full h-full flex items-center justify-center">

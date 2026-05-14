@@ -114,8 +114,6 @@ describe("startExpiryCheck", () => {
 
   it("calls checkTokenExpiry again after 60 seconds", () => {
     vi.useFakeTimers();
-    const checkSpy = vi.fn();
-    // Patch the interval callback by spying — use fake timers
     const id = startExpiryCheck();
     // Advance 60 s
     vi.advanceTimersByTime(60_000);

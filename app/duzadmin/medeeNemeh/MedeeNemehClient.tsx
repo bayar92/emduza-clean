@@ -1,9 +1,11 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import Image from 'next/image';
 import { useRouter, useSearchParams } from 'next/navigation';
 import TiptapEditor from '@/components/TiptapEditor';
 import Head from 'next/head';
+import { useDialog } from '@/components/useDialog';
 import {
   FiSave,
   FiArrowLeft,
@@ -20,6 +22,7 @@ export default function MedeeNemehClient() {
   const router = useRouter();
   const params = useSearchParams();
   const slug = params.get('slug');
+  const { alert, dialog } = useDialog();
 
   const [title, setTitle] = useState('');
   const [category, setCategory] = useState('Мэдээлэл');
@@ -55,16 +58,16 @@ export default function MedeeNemehClient() {
     fetchItem();
   }, [slug]);
 
-  const handleCoverChange = (e: any) => {
+  const handleCoverChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const f = e.target.files?.[0];
     if (!f) return;
     setCoverImage(f);
     setCoverPreview(URL.createObjectURL(f));
   };
 
-  const handleImagesChange = (e: any) => {
-    const files = Array.from(e.target.files);
-    setNewImages((prev) => [...prev, ...(files as File[])]);
+  const handleImagesChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files ?? []);
+    setNewImages((prev) => [...prev, ...files]);
   };
 
   const removeOldImage = (img: string) => {
@@ -76,7 +79,7 @@ export default function MedeeNemehClient() {
     setNewImages((p) => p.filter((_, i) => i !== index));
   };
 
-  const handleSubmit = async (e: any) => {
+  const handleSubmit = async (e: React.FormEvent | React.MouseEvent) => {
     e.preventDefault();
     setSaveLoading(true);
 
@@ -101,8 +104,8 @@ export default function MedeeNemehClient() {
       if (res.ok) {
         router.push('/duzadmin/medee');
       }
-    } catch (err) {
-      alert('Алдаа гарлаа');
+    } catch {
+      await alert('Алдаа гарлаа');
     } finally {
       setSaveLoading(false);
     }
@@ -115,6 +118,7 @@ export default function MedeeNemehClient() {
 
   return (
     <div className="min-h-screen bg-[#F8FAFC] pb-20">
+      {dialog}
       <Head>
         <title>{editId ? 'Мэдээ засах' : 'Мэдээ нэмэх'} | Admin</title>
       </Head>
@@ -250,10 +254,13 @@ export default function MedeeNemehClient() {
 
               <div className="relative group w-full aspect-video mb-4">
                 {coverPreview ? (
-                  <img
+                  <Image
                     src={coverPreview}
                     alt="Cover preview"
-                    className="w-full h-full object-cover rounded-2xl shadow-md border-2 border-white ring-1 ring-gray-100"
+                    fill
+                    sizes="(max-width: 1024px) 100vw, 33vw"
+                    unoptimized
+                    className="object-cover rounded-2xl shadow-md border-2 border-white ring-1 ring-gray-100"
                   />
                 ) : (
                   <div className="w-full h-full rounded-2xl bg-gray-50 border-2 border-dashed border-gray-200 flex flex-col items-center justify-center text-gray-400">
@@ -294,9 +301,12 @@ export default function MedeeNemehClient() {
                 <div className="grid grid-cols-4 gap-2">
                   {oldImages.map((img) => (
                     <div key={img} className="relative aspect-square group">
-                      <img
+                      <Image
                         src={img}
-                        className="w-full h-full object-cover rounded-lg border border-gray-100"
+                        fill
+                        sizes="100px"
+                        unoptimized
+                        className="object-cover rounded-lg border border-gray-100"
                         alt="gallery"
                       />
                       <button
@@ -311,9 +321,12 @@ export default function MedeeNemehClient() {
 
                   {newImages.map((file, idx) => (
                     <div key={idx} className="relative aspect-square group">
-                      <img
+                      <Image
                         src={URL.createObjectURL(file)}
-                        className="w-full h-full object-cover rounded-lg border border-blue-200"
+                        fill
+                        sizes="100px"
+                        unoptimized
+                        className="object-cover rounded-lg border border-blue-200"
                         alt="new"
                       />
                       <button

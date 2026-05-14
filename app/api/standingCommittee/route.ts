@@ -46,7 +46,7 @@ export async function GET(req: Request) {
     const total = await prisma.stCommittee.count();
 
     return NextResponse.json({ stcommittee, currentCommittee: total });
-  } catch (error) {
+  } catch {
     return NextResponse.json(
       { error: 'Error fetching committee' },
       { status: 500 }
@@ -141,7 +141,7 @@ export async function PUT(req: Request) {
     });
 
     return NextResponse.json(updated, { status: 200 });
-  } catch (error) {
+  } catch {
     return NextResponse.json(
       { error: 'Failed to update committee' },
       { status: 500 }
@@ -161,7 +161,7 @@ export async function DELETE(req: Request) {
     await prisma.stCommittee.delete({ where: { id } });
 
     return new NextResponse(null, { status: 204 });
-  } catch (error) {
+  } catch {
     return NextResponse.json(
       { error: 'Failed to delete committee' },
       { status: 500 }

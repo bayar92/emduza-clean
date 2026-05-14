@@ -1,11 +1,4 @@
 import React from 'react';
-import {
-  FaBell,
-  FaEnvelope,
-  FaTasks,
-  FaUserCircle,
-  FaSearch,
-} from 'react-icons/fa';
 
 const TopNavBar = () => {
   return (

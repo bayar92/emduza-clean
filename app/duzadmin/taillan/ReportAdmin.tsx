@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import withAuth from '@/components/withAuth';
+import { useDialog } from '@/components/useDialog';
 import { FiUpload, FiTrash2, FiFileText, FiDownload, FiPlus, FiPieChart, FiCheckCircle } from 'react-icons/fi';
 
 type Report = {
@@ -21,6 +22,7 @@ const inputCls = 'w-full border border-gray-200 rounded-xl text-black px-4 py-2.
 const labelCls = 'block text-[11px] font-bold text-gray-400 uppercase tracking-widest mb-1.5 ml-1';
 
 function ReportAdmin({ type, label }: Props) {
+  const { confirm, dialog } = useDialog();
   const [reports, setReports] = useState<Report[]>([]);
   const [title, setTitle] = useState('');
   const [year, setYear] = useState(new Date().getFullYear());
@@ -34,7 +36,15 @@ function ReportAdmin({ type, label }: Props) {
     setReports(Array.isArray(data) ? data : []);
   };
 
-  useEffect(() => { fetchReports(); }, []);
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const res = await fetch(`/api/reports?type=${type}`);
+      const data = await res.json();
+      if (!cancelled) setReports(Array.isArray(data) ? data : []);
+    })();
+    return () => { cancelled = true; };
+  }, [type]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -59,7 +69,7 @@ function ReportAdmin({ type, label }: Props) {
   };
 
   const handleDelete = async (id: number) => {
-    if (!confirm('Устгах уу?')) return;
+    if (!(await confirm('Устгах уу?'))) return;
     await fetch(`/api/reports?id=${id}`, { method: 'DELETE' });
     fetchReports();
   };
@@ -69,6 +79,7 @@ function ReportAdmin({ type, label }: Props) {
 
   return (
     <div className="min-h-screen bg-[#F8FAFC] pb-20">
+      {dialog}
 
       {/* Sticky topbar — matches shiidwer style */}
       <div className="bg-white/80 backdrop-blur-md border-b sticky top-0 z-20">

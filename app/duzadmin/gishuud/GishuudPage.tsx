@@ -1,7 +1,7 @@
 'use client';
 
+import React, { useState } from 'react';
 import Image from 'next/image';
-import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import withAuth from '@/components/withAuth';
 import { useRouter, useSearchParams } from 'next/navigation';
@@ -16,39 +16,55 @@ import {
   FiInfo,
 } from 'react-icons/fi';
 
+interface MemberFormData {
+  id?: number;
+  position?: string;
+  name?: string;
+  parlament?: string;
+  education?: string;
+  company?: string;
+  image?: string;
+}
+
+function parseMemberParam(memberParam: string | null): MemberFormData | null {
+  if (!memberParam) return null;
+  try {
+    return JSON.parse(memberParam) as MemberFormData;
+  } catch {
+    return null;
+  }
+}
+
 const Gishuud = () => {
   const router = useRouter();
   const searchParams = useSearchParams();
   const memberParam = searchParams.get('members');
+  const initialMember = parseMemberParam(memberParam);
 
-  const [position, setPosition] = useState('Засгийн газрын төлөөлөл');
-  const [name, setName] = useState('');
-  const [parlament, setParlament] = useState('');
-  const [education, setEducation] = useState('');
-  const [company, setCompany] = useState('');
+  const [position, setPosition] = useState(initialMember?.position || 'Засгийн газрын төлөөлөл');
+  const [name, setName] = useState(initialMember?.name || '');
+  const [parlament, setParlament] = useState(initialMember?.parlament || '');
+  const [education, setEducation] = useState(initialMember?.education || '');
+  const [company, setCompany] = useState(initialMember?.company || '');
   const [image, setImage] = useState<File | null>(null);
-  const [imagePreview, setImagePreview] = useState<string | null>(null);
-  const [editId, setEditId] = useState<number | null>(null);
+  const [imagePreview, setImagePreview] = useState<string | null>(initialMember?.image || null);
+  const [editId, setEditId] = useState<number | null>(initialMember?.id || null);
   const [error, setError] = useState<string>('');
-  const [success, setSuccess] = useState<string>('');
 
-  useEffect(() => {
-    if (!memberParam) return;
-    try {
-      const member = JSON.parse(memberParam);
-      setPosition(member.position || '');
-      setName(member.name || '');
-      setParlament(member.parlament || '');
-      setEducation(member.education || '');
-      setCompany(member.company || '');
-      setImagePreview(member.image || null);
-      setEditId(member.id || null);
-    } catch (err) {
-      console.log('Invalid member data');
-    }
-  }, [memberParam]);
+  const [prevMemberParam, setPrevMemberParam] = useState(memberParam);
+  if (memberParam !== prevMemberParam) {
+    setPrevMemberParam(memberParam);
+    const m = parseMemberParam(memberParam);
+    setPosition(m?.position || 'Засгийн газрын төлөөлөл');
+    setName(m?.name || '');
+    setParlament(m?.parlament || '');
+    setEducation(m?.education || '');
+    setCompany(m?.company || '');
+    setImagePreview(m?.image || null);
+    setEditId(m?.id || null);
+  }
 
-  const handleImageChange = (e: any) => {
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
     setImage(file);
@@ -57,10 +73,9 @@ const Gishuud = () => {
     setImagePreview(URL.createObjectURL(file));
   };
 
-  const handleSubmit = async (e: any) => {
+  const handleSubmit = async (e: React.FormEvent | React.MouseEvent) => {
     e.preventDefault();
     setError('');
-    setSuccess('');
 
     if (!name || !parlament) {
       setError('Заавал бөглөх талбаруудыг шалгана уу!');
@@ -85,12 +100,12 @@ const Gishuud = () => {
           headers: { 'Content-Type': 'multipart/form-data' },
         });
       }
-      setSuccess(
-        `Амжилттай! ${editId ? 'Мэдээлэл шинэчлэгдлээ.' : 'Шинэ гишүүн бүртгэгдлээ.'}`
-      );
       setTimeout(() => router.push('/duzadmin/emduzGishuud'), 1500);
-    } catch (err: any) {
-      setError(err.response?.data?.error || 'Хүсэлт илгээхэд алдаа гарлаа.');
+    } catch (err) {
+      const errorMsg = axios.isAxiosError(err)
+        ? err.response?.data?.error
+        : null;
+      setError(errorMsg || 'Хүсэлт илгээхэд алдаа гарлаа.');
     }
   };
 
@@ -263,10 +278,13 @@ const Gishuud = () => {
               <div className="flex flex-col items-center">
                 <div className="relative group w-full aspect-[3/4] mb-8">
                   {imagePreview ? (
-                    <img
+                    <Image
                       src={imagePreview}
                       alt="Preview"
-                      className="w-full h-full object-cover rounded-[24px] shadow-2xl border-4 border-white ring-1 ring-gray-100 transition-transform duration-500 group-hover:scale-[1.02]"
+                      fill
+                      sizes="(max-width: 768px) 100vw, 33vw"
+                      unoptimized
+                      className="object-cover rounded-[24px] shadow-2xl border-4 border-white ring-1 ring-gray-100 transition-transform duration-500 group-hover:scale-[1.02]"
                     />
                   ) : (
                     <div className="w-full h-full rounded-[24px] bg-gray-50 border-2 border-dashed border-gray-200 flex flex-col items-center justify-center text-gray-400 gap-3 group-hover:bg-gray-100 transition-colors">

@@ -6,7 +6,7 @@ import Head from 'next/head';
 import withAuth from '@/components/withAuth';
 import dynamic from 'next/dynamic';
 import SuccessModal from '@/components/SuccessModal';
-import { FiSave, FiFileText, FiInfo, FiCheckCircle } from 'react-icons/fi';
+import { FiSave, FiFileText, FiInfo } from 'react-icons/fi';
 
 const TiptapEditor = dynamic(() => import('@/components/TiptapEditor'), {
   ssr: false,
@@ -98,7 +98,7 @@ const AaTaniltsuulga = () => {
           </div>
 
           <button
-            onClick={(e: any) => handleSubmit(e)}
+            onClick={(e) => handleSubmit(e as unknown as React.FormEvent)}
             disabled={saveLoading}
             className="flex items-center gap-2 px-6 py-2.5 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white text-sm font-bold rounded-xl shadow-lg shadow-blue-100 transition-all active:scale-95"
           >

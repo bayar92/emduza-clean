@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import Head from 'next/head';
 import { useRouter } from 'next/navigation';
+import { useDialog } from '@/components/useDialog';
 import {
   FiVideo,
   FiPlus,
@@ -16,12 +17,20 @@ import {
   FiChevronRight,
 } from 'react-icons/fi';
 
+type VideoItem = {
+  id: number;
+  title: string;
+  videoPath: string;
+  createdAt: string;
+};
+
 export default function VideoMedee() {
   const router = useRouter();
+  const { confirm, dialog } = useDialog();
 
   const [title, setTitle] = useState('');
   const [video, setVideo] = useState<File | null>(null);
-  const [videoNews, setVideoNews] = useState([]);
+  const [videoNews, setVideoNews] = useState<VideoItem[]>([]);
   const [page, setPage] = useState(1);
   const [limit] = useState(5);
   const [totalVideos, setTotalVideos] = useState(0);
@@ -31,29 +40,29 @@ export default function VideoMedee() {
   const [loading, setLoading] = useState(false);
   const [fetchLoading, setFetchLoading] = useState(true);
 
-  const fetchVideos = async (p: number) => {
+  const fetchVideos = React.useCallback(async (p: number) => {
     setFetchLoading(true);
     try {
       const res = await axios.get(`/api/video?page=${p}&limit=${limit}`);
       setVideoNews(res.data.videos);
       setTotalVideos(res.data.totalVideos);
-    } catch (err) {
+    } catch {
       setError('Видео татаж чадсангүй');
     } finally {
       setFetchLoading(false);
     }
-  };
+  }, [limit]);
 
   useEffect(() => {
     fetchVideos(page);
-  }, [page]);
+  }, [page, fetchVideos]);
 
-  const handleVideoUpload = (e: any) => {
+  const handleVideoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) setVideo(file);
   };
 
-  const handleSubmit = async (e: any) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
     setSuccess('');
@@ -80,7 +89,7 @@ export default function VideoMedee() {
         if (page === 1) fetchVideos(1);
         else setPage(1);
       }
-    } catch (err) {
+    } catch {
       setError('Видео нэмэх үед алдаа гарлаа.');
     } finally {
       setLoading(false);
@@ -89,12 +98,12 @@ export default function VideoMedee() {
   };
 
   const handleDelete = async (id: number) => {
-    if (!confirm('Та энэ видеог устгахдаа итгэлтэй байна уу?')) return;
+    if (!(await confirm('Та энэ видеог устгахдаа итгэлтэй байна уу?'))) return;
 
     try {
       await axios.delete(`/api/video?id=${id}`);
       fetchVideos(page);
-    } catch (err) {
+    } catch {
       setError('Видео устгахад алдаа гарлаа.');
     }
   };
@@ -106,6 +115,7 @@ export default function VideoMedee() {
 
   return (
     <div className="min-h-screen bg-[#F8FAFC] pb-20">
+      {dialog}
       <Head>
         <title>Видео мэдээ | Admin</title>
       </Head>
@@ -229,7 +239,7 @@ export default function VideoMedee() {
                     </td>
                   </tr>
                 ) : (
-                  videoNews.map((item: any) => (
+                  videoNews.map((item) => (
                     <tr
                       key={item.id}
                       className="group hover:bg-blue-50/30 transition-colors"

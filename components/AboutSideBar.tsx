@@ -1,8 +1,5 @@
 import React from 'react';
 
-import { FaClipboardList } from 'react-icons/fa';
-
-import Link from 'next/link';
 const AboutSideBar = () => {
   return (
     <div className="container mx-auto mt-36 flex mb-20">

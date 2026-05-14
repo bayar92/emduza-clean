@@ -10,6 +10,7 @@ import { TextStyle } from '@tiptap/extension-text-style';
 import Color from '@tiptap/extension-color';
 import Highlight from '@tiptap/extension-highlight';
 import { useEffect } from 'react';
+import { useDialog } from './useDialog';
 
 interface Props {
   content: string;
@@ -22,6 +23,7 @@ export default function TiptapEditor({
   setContent,
   contentClassName,
 }: Props) {
+  const { alert, dialog } = useDialog();
   const editor = useEditor({
     immediatelyRender: false,
     extensions: [
@@ -62,18 +64,19 @@ export default function TiptapEditor({
       const res = await fetch("/api/upload", { method: "POST", body: form });
       if (!res.ok) {
         const { error } = await res.json();
-        alert(error || "Зураг оруулахад алдаа гарлаа");
+        await alert(error || "Зураг оруулахад алдаа гарлаа");
         return;
       }
       const { url } = await res.json();
       editor.chain().focus().setImage({ src: url }).run();
     } catch {
-      alert("Зураг оруулахад алдаа гарлаа");
+      await alert("Зураг оруулахад алдаа гарлаа");
     }
   };
 
   return (
     <div className="rounded-md p-3 bg-white h-full flex flex-col">
+      {dialog}
       <div className="flex flex-wrap gap-4 border-b pb-2 mb-3">
         <button
           className="px-2 py-1 border border-gray-300 rounded hover:bg-gray-100 transition text-sm text-gray-700"
@@ -235,7 +238,3 @@ export default function TiptapEditor({
     </div>
   );
 }
-
-const btnClass = `
-  px-2 py-1 border rounded hover:bg-gray-200 transition text-sm
-`;

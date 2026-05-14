@@ -23,7 +23,7 @@ export async function GET(req: Request) {
     const totalVideos = await prisma.video.count();
 
     return NextResponse.json({ videos, totalVideos });
-  } catch (err) {
+  } catch {
     return NextResponse.json(
       { error: 'Error fetching videos' },
       { status: 500 }
@@ -57,7 +57,7 @@ export async function POST(req: Request) {
     });
 
     return NextResponse.json(newVideo, { status: 201 });
-  } catch (err) {
+  } catch {
     return NextResponse.json(
       { error: 'Error uploading video' },
       { status: 500 }
@@ -91,7 +91,7 @@ export async function DELETE(req: Request) {
     }
 
     return new NextResponse(null, { status: 204 });
-  } catch (err) {
+  } catch {
     return NextResponse.json(
       { error: 'Error deleting video' },
       { status: 500 }

@@ -11,37 +11,38 @@ import OrgStructure from './OrgStructure';
 
 const HomePage = () => {
   return (
-    <div className="w-full bg-[#F8FAFC]">
+    <div className="w-full bg-slate-50">
       <header className="relative w-full overflow-hidden">
         <div className="max-w-[1920px] mx-auto relative">
           <Image
             src="/images/cover_1.jpg"
             alt="ЭМДҮЗ Cover"
             width={1920}
-            height={500}
-            className="w-full h-[320px] md:h-[440px] lg:h-[520px] object-cover object-center"
+            height={520}
+            className="w-full h-[340px] md:h-[460px] lg:h-[540px] object-cover object-center"
             priority
           />
-          <div className="absolute inset-0 bg-gradient-to-r from-black/75 via-black/40 to-transparent z-10" />
-          <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent z-10" />
+          {/* Deeper, more legible gradient overlay than the previous double-stack */}
+          <div className="absolute inset-0 bg-gradient-to-r from-brand-900/85 via-brand-900/60 to-transparent z-10" />
+          <div className="absolute inset-0 bg-gradient-to-t from-brand-900/40 to-transparent z-10" />
 
           <div className="absolute inset-0 z-20 flex items-center">
             <div className="container mx-auto px-6 lg:px-20">
               <div className="max-w-2xl">
-                <div className="flex items-center gap-3 mb-5">
-                  <div className="w-10 h-[3px] bg-blue-400 rounded-full" />
-                  <span className="text-blue-300 text-[11px] font-black uppercase tracking-[0.3em]">
+                <div className="flex items-center gap-3 mb-6">
+                  <div className="w-10 h-[2px] bg-brand-300 rounded-full" />
+                  <span className="text-brand-200 text-[11px] font-semibold uppercase tracking-[0.22em]">
                     Монгол улс
                   </span>
                 </div>
 
-                <h1 className="text-3xl md:text-4xl lg:text-5xl font-black text-white leading-tight drop-shadow-lg">
-                  Эрүүл мэндийн <br />
+                <h1 className="text-[34px] md:text-5xl lg:text-[56px] font-extrabold text-white leading-[1.1] tracking-tight">
+                  Эрүүл мэндийн<br />
                   даатгалын{' '}
-                  <span className="text-blue-400">үндэсний зөвлөл</span>
+                  <span className="text-brand-300">үндэсний зөвлөл</span>
                 </h1>
 
-                <p className="mt-4 text-sm md:text-base text-gray-200 font-medium max-w-md hidden md:block opacity-90 leading-relaxed">
+                <p className="mt-5 text-[15px] md:text-base text-white/85 max-w-md hidden md:block leading-relaxed">
                   Монгол улсын иргэн бүрийн эрүүл мэндийн төлөөх чанартай,
                   хүртээмжтэй тогтолцоо.
                 </p>
@@ -51,7 +52,7 @@ const HomePage = () => {
         </div>
       </header>
 
-      <div className="border-b border-gray-100">
+      <div className="border-b border-slate-100">
         <QuickLinks />
       </div>
 
@@ -62,7 +63,7 @@ const HomePage = () => {
       </div>
       <StatsSection />
 
-      <div className="bg-white py-4 shadow-sm border-y border-gray-100">
+      <div className="bg-white py-4 border-y border-slate-100">
         <div className="container mx-auto px-6">
           <VideoNews />
         </div>
@@ -71,7 +72,7 @@ const HomePage = () => {
       <RecentDocuments />
       <OrgStructure />
 
-      <div className="pb-8">
+      <div className="pb-12">
         <MembersSection />
       </div>
     </div>

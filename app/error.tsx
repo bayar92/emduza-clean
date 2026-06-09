@@ -15,20 +15,20 @@ export default function Error({
   }, [error]);
 
   return (
-    <div className="min-h-screen bg-[#F8FAFC] flex items-center justify-center p-6">
-      <div className="max-w-md w-full bg-white rounded-2xl shadow-sm border border-gray-100 p-8 text-center">
-        <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-red-50 flex items-center justify-center">
-          <FiAlertTriangle className="text-red-500" size={28} />
+    <div className="min-h-screen bg-slate-50 flex items-center justify-center p-6">
+      <div className="max-w-md w-full bg-white rounded-2xl shadow-[var(--shadow-card)] border border-slate-100 p-8 text-center">
+        <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-rose-50 flex items-center justify-center">
+          <FiAlertTriangle className="text-rose-500" size={28} />
         </div>
-        <h2 className="text-lg font-black text-gray-900 mb-2">
+        <h2 className="text-lg font-bold text-slate-900 mb-2">
           Алдаа гарлаа
         </h2>
-        <p className="text-sm text-gray-500 mb-6">
+        <p className="text-sm text-slate-500 mb-6 leading-relaxed">
           Уучлаарай, хүсэлтийг боловсруулах явцад асуудал гарлаа.
         </p>
         <button
           onClick={reset}
-          className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold rounded-xl transition-colors"
+          className="px-5 py-2.5 bg-brand-600 hover:bg-brand-700 text-white text-sm font-semibold rounded-xl transition-colors"
         >
           Дахин оролдох
         </button>

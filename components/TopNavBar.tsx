@@ -173,13 +173,13 @@ const TopNavBar = () => {
 
   return (
     <>
-      <div className="fixed top-0 left-0 w-full z-[70] h-[5px] bg-gradient-to-r from-[#0D47A1] via-[#1565C0] to-[#2E7D32]" />
+      <div className="fixed top-0 left-0 w-full z-[70] h-[3px] bg-gradient-to-r from-brand-600 via-brand-500 to-accent-500" />
 
       <nav
-        className={`fixed top-[5px] left-0 w-full z-[60] transition-all duration-300 ${
+        className={`fixed top-[3px] left-0 w-full z-[60] transition-all duration-300 ${
           scrolled
-            ? 'bg-white/95 backdrop-blur-md shadow-[0_2px_20px_rgba(0,0,0,0.08)] py-2'
-            : 'bg-white py-3'
+            ? 'bg-white/95 backdrop-blur-md shadow-[var(--shadow-nav)] py-2'
+            : 'bg-white py-3 border-b border-slate-100'
         }`}
       >
         <div className="container mx-auto px-6 flex items-center justify-between">
@@ -190,7 +190,7 @@ const TopNavBar = () => {
             <Image
               src="/images/logo_2.png"
               alt="ЭМДҮЗ"
-              width={scrolled ? 120 : 140}
+              width={scrolled ? 118 : 134}
               height={44}
               priority
               className="transition-all duration-300"
@@ -198,18 +198,18 @@ const TopNavBar = () => {
             />
           </Link>
 
-          <div className="hidden lg:flex items-center gap-1">
+          <div className="hidden lg:flex items-center gap-0.5">
             <Link
               href="/"
-              className={`relative px-4 py-2 text-[13px] font-bold tracking-tight rounded-lg transition-colors ${
+              className={`relative px-3.5 py-2 text-[13px] font-semibold rounded-md transition-colors ${
                 pathname === '/'
-                  ? 'text-blue-700 bg-blue-50'
-                  : 'text-gray-600 hover:text-blue-700 hover:bg-gray-50'
+                  ? 'text-brand-700 bg-brand-50'
+                  : 'text-slate-600 hover:text-brand-700 hover:bg-slate-50'
               }`}
             >
-              НҮҮР
+              Нүүр
               {pathname === '/' && (
-                <span className="absolute bottom-0 left-1/2 -translate-x-1/2 w-4 h-[2px] bg-blue-600 rounded-full" />
+                <span className="absolute -bottom-0.5 left-1/2 -translate-x-1/2 w-5 h-[2px] bg-brand-600 rounded-full" />
               )}
             </Link>
 
@@ -225,29 +225,29 @@ const TopNavBar = () => {
                   onMouseLeave={handleMouseLeave}
                 >
                   <button
-                    className={`relative flex items-center gap-0.5 px-4 py-2 text-[13px] font-bold tracking-tight rounded-lg transition-colors ${
+                    className={`relative flex items-center gap-0.5 px-3.5 py-2 text-[13px] font-semibold rounded-md transition-colors ${
                       isActive || openId === item.id
-                        ? 'text-blue-700 bg-blue-50'
-                        : 'text-gray-600 hover:text-blue-700 hover:bg-gray-50'
+                        ? 'text-brand-700 bg-brand-50'
+                        : 'text-slate-600 hover:text-brand-700 hover:bg-slate-50'
                     }`}
                   >
-                    <span className="uppercase">{item.label}</span>
+                    <span>{item.label}</span>
                     <RiArrowDropDownLine
                       size={20}
                       className={`transition-transform duration-200 ${openId === item.id ? 'rotate-180' : ''}`}
                     />
                     {isActive && (
-                      <span className="absolute bottom-0 left-1/2 -translate-x-1/2 w-4 h-[2px] bg-blue-600 rounded-full" />
+                      <span className="absolute -bottom-0.5 left-1/2 -translate-x-1/2 w-5 h-[2px] bg-brand-600 rounded-full" />
                     )}
                   </button>
 
                   {openId === item.id && (
                     <div
-                      className="absolute top-full left-0 mt-1 w-72 bg-white rounded-2xl shadow-2xl shadow-gray-200/80 border border-gray-100 py-2 z-50 animate-in fade-in zoom-in-95 duration-150"
+                      className="absolute top-full left-0 mt-2 w-72 bg-white rounded-2xl shadow-[var(--shadow-modal)] border border-slate-100 py-2 z-50 animate-in fade-in zoom-in-95 duration-150"
                       onMouseEnter={() => handleMouseEnter(item.id)}
                       onMouseLeave={handleMouseLeave}
                     >
-                      <div className="absolute -top-[6px] left-6 w-3 h-3 bg-white border-t border-l border-gray-100 rotate-45" />
+                      <div className="absolute -top-[6px] left-6 w-3 h-3 bg-white border-t border-l border-slate-100 rotate-45" />
                       {item.children.map((child, i) => {
                         const Icon = child.icon;
                         const isChildActive = pathname === child.href;
@@ -265,33 +265,33 @@ const TopNavBar = () => {
                           <Tag
                             key={i}
                             {...extraProps}
-                            className={`flex items-center gap-3 mx-2 px-3 py-2.5 rounded-xl transition-all group ${
+                            className={`flex items-center gap-3 mx-1.5 px-3 py-2.5 rounded-xl transition-colors group ${
                               isChildActive
-                                ? 'bg-blue-50 text-blue-700'
-                                : 'hover:bg-gray-50 text-gray-700'
+                                ? 'bg-brand-50 text-brand-700'
+                                : 'hover:bg-slate-50 text-slate-700'
                             }`}
                           >
                             <div
-                              className={`w-8 h-8 flex-shrink-0 flex items-center justify-center rounded-lg transition-colors ${
+                              className={`w-9 h-9 flex-shrink-0 flex items-center justify-center rounded-lg transition-colors ${
                                 isChildActive
-                                  ? 'bg-blue-100 text-blue-600'
-                                  : 'bg-gray-100 text-gray-500 group-hover:bg-blue-100 group-hover:text-blue-600'
+                                  ? 'bg-brand-100 text-brand-600'
+                                  : 'bg-slate-100 text-slate-500 group-hover:bg-brand-100 group-hover:text-brand-600'
                               }`}
                             >
-                              <Icon size={14} />
+                              <Icon size={15} />
                             </div>
-                            <div className="min-w-0">
-                              <div className="text-[12px] font-bold leading-tight truncate">
+                            <div className="min-w-0 flex-1">
+                              <div className="text-[13px] font-semibold leading-tight truncate">
                                 {child.label}
                               </div>
-                              <div className="text-[10px] text-gray-400 mt-0.5 truncate">
+                              <div className="text-[11px] text-slate-400 mt-0.5 truncate">
                                 {child.desc}
                               </div>
                             </div>
                             {isExternal && (
                               <FiChevronRight
-                                size={12}
-                                className="ml-auto text-gray-300 flex-shrink-0"
+                                size={13}
+                                className="ml-auto text-slate-300 flex-shrink-0"
                               />
                             )}
                           </Tag>
@@ -306,7 +306,7 @@ const TopNavBar = () => {
 
           <button
             onClick={() => setMobileOpen(!mobileOpen)}
-            className="lg:hidden p-2 text-gray-700 hover:bg-gray-100 rounded-xl transition-colors"
+            className="lg:hidden p-2 text-slate-700 hover:bg-slate-100 rounded-md transition-colors"
             aria-label="Цэс нээх"
           >
             {mobileOpen ? <RiCloseLine size={24} /> : <RiMenu3Line size={24} />}
@@ -315,19 +315,19 @@ const TopNavBar = () => {
 
         <div
           className={`lg:hidden overflow-hidden transition-all duration-300 ${
-            mobileOpen ? 'max-h-[80vh] border-t border-gray-100' : 'max-h-0'
+            mobileOpen ? 'max-h-[80vh] border-t border-slate-100' : 'max-h-0'
           }`}
         >
           <div className="bg-white container mx-auto px-4 py-3 overflow-y-auto max-h-[75vh]">
             <Link
               href="/"
-              className={`flex items-center gap-3 px-4 py-3 rounded-xl mb-1 text-[13px] font-bold ${
+              className={`flex items-center gap-3 px-4 py-3 rounded-xl mb-1 text-[13px] font-semibold ${
                 pathname === '/'
-                  ? 'bg-blue-50 text-blue-700'
-                  : 'text-gray-700 hover:bg-gray-50'
+                  ? 'bg-brand-50 text-brand-700'
+                  : 'text-slate-700 hover:bg-slate-50'
               }`}
             >
-              НҮҮР
+              Нүүр
             </Link>
 
             {navItems.map((item) => (
@@ -369,16 +369,16 @@ const MobileAccordion = ({
     <div className="mb-1">
       <button
         onClick={() => setOpenId(isOpen ? null : item.id)}
-        className={`w-full flex items-center justify-between px-4 py-3 rounded-xl text-[13px] font-bold transition-colors ${
+        className={`w-full flex items-center justify-between px-4 py-3 rounded-xl text-[13px] font-semibold transition-colors ${
           isActive
-            ? 'bg-blue-50 text-blue-700'
-            : 'text-gray-700 hover:bg-gray-50'
+            ? 'bg-brand-50 text-brand-700'
+            : 'text-slate-700 hover:bg-slate-50'
         }`}
       >
-        <span className="uppercase">{item.label}</span>
+        <span>{item.label}</span>
         <RiArrowDropDownLine
           size={22}
-          className={`transition-transform duration-200 ${isOpen ? 'rotate-180 text-blue-600' : 'text-gray-400'}`}
+          className={`transition-transform duration-200 ${isOpen ? 'rotate-180 text-brand-600' : 'text-slate-400'}`}
         />
       </button>
 
@@ -404,17 +404,17 @@ const MobileAccordion = ({
               <Tag
                 key={i}
                 {...extraProps}
-                className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-[12px] font-semibold transition-colors ${
+                className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-[13px] font-medium transition-colors ${
                   isChildActive
-                    ? 'bg-blue-50 text-blue-700'
-                    : 'text-gray-600 hover:bg-gray-50'
+                    ? 'bg-brand-50 text-brand-700'
+                    : 'text-slate-600 hover:bg-slate-50'
                 }`}
               >
                 <div
                   className={`w-7 h-7 flex-shrink-0 flex items-center justify-center rounded-lg ${
                     isChildActive
-                      ? 'bg-blue-100 text-blue-600'
-                      : 'bg-gray-100 text-gray-500'
+                      ? 'bg-brand-100 text-brand-600'
+                      : 'bg-slate-100 text-slate-500'
                   }`}
                 >
                   <Icon size={13} />

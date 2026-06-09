@@ -27,24 +27,24 @@ export default function ConfirmDialog({
 
   const isConfirm = variant === 'confirm';
   const Icon = isConfirm ? FiAlertTriangle : FiInfo;
-  const accentBg = isConfirm ? 'bg-red-50' : 'bg-blue-50';
-  const accentText = isConfirm ? 'text-red-500' : 'text-blue-500';
+  const accentBg = isConfirm ? 'bg-rose-50' : 'bg-brand-50';
+  const accentText = isConfirm ? 'text-rose-500' : 'text-brand-600';
 
   return (
     <div
       role="dialog"
       aria-modal="true"
-      className="fixed inset-0 z-[200] flex items-center justify-center bg-black/50 p-4"
+      className="fixed inset-0 z-[200] flex items-center justify-center bg-slate-900/50 backdrop-blur-sm p-4 animate-fadeSlide"
       onClick={onCancel}
     >
       <div
         onClick={(e) => e.stopPropagation()}
-        className="bg-white rounded-2xl shadow-xl w-full max-w-sm p-6 text-center"
+        className="bg-white rounded-2xl shadow-[var(--shadow-modal)] w-full max-w-sm p-6 text-center"
       >
         <div className={`w-14 h-14 mx-auto mb-4 rounded-full ${accentBg} flex items-center justify-center`}>
           <Icon className={accentText} size={26} />
         </div>
-        <p className="text-[15px] font-semibold text-gray-800 mb-6 leading-snug">
+        <p className="text-[15px] font-medium text-slate-800 mb-6 leading-relaxed">
           {message}
         </p>
         <div className="flex gap-2">
@@ -52,7 +52,7 @@ export default function ConfirmDialog({
             <button
               type="button"
               onClick={onCancel}
-              className="flex-1 px-4 py-2.5 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-700 text-sm font-bold transition-colors"
+              className="flex-1 px-4 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-sm font-semibold transition-colors"
             >
               {cancelLabel}
             </button>
@@ -60,8 +60,8 @@ export default function ConfirmDialog({
           <button
             type="button"
             onClick={onConfirm}
-            className={`flex-1 px-4 py-2.5 rounded-xl text-white text-sm font-bold transition-colors ${
-              isConfirm ? 'bg-red-600 hover:bg-red-700' : 'bg-blue-600 hover:bg-blue-700'
+            className={`flex-1 px-4 py-2.5 rounded-xl text-white text-sm font-semibold transition-colors ${
+              isConfirm ? 'bg-rose-600 hover:bg-rose-700' : 'bg-brand-600 hover:bg-brand-700'
             }`}
           >
             {isConfirm ? confirmLabel : okLabel}

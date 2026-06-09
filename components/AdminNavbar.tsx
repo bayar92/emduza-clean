@@ -73,34 +73,30 @@ const AdminNavBar = () => {
   };
 
   return (
-    <div className="h-screen w-72 bg-white border-r border-gray-100 shadow-sm fixed left-0 top-0 overflow-y-auto flex flex-col z-30">
+    <div className="h-screen w-72 bg-white border-r border-slate-100 fixed left-0 top-0 overflow-y-auto flex flex-col z-30">
       {dialog}
-      <div className="px-8 py-8 mb-4">
+      <div className="px-6 py-7 mb-2">
         <div className="flex items-center gap-3">
-          <div className="bg-blue-600 p-2 rounded-xl shadow-lg shadow-blue-100">
+          <div className="bg-brand-600 p-2 rounded-xl">
             <Image
               src="/images/full_logo.png"
-              width={60}
-              height={60}
+              width={56}
+              height={56}
               alt="Logo"
               className="brightness-0 invert"
             />
           </div>
           <div>
-            <h2 className="text-sm font-black text-gray-900 tracking-tight leading-none uppercase">
+            <h2 className="text-[15px] font-bold text-slate-900 tracking-tight leading-none">
               ЭМДҮЗ
             </h2>
-            <p className="text-[10px] font-bold text-gray-400 mt-1 uppercase tracking-widest">
-              Админ удирдлага
-            </p>
+            <p className="eyebrow mt-1.5">Админ удирдлага</p>
           </div>
         </div>
       </div>
 
-      <nav className="flex-1 px-4 space-y-1.5">
-        <p className="px-4 text-[10px] font-bold text-gray-400 uppercase tracking-[0.2em] mb-4">
-          Үндсэн цэс
-        </p>
+      <nav className="flex-1 px-3 space-y-0.5">
+        <p className="eyebrow px-3 mb-3">Үндсэн цэс</p>
 
         {NAV_ITEMS.map(({ href, icon: Icon, label }) => {
           const active = isActive(href);
@@ -108,19 +104,19 @@ const AdminNavBar = () => {
             <Link
               key={href}
               href={href}
-              className={`group flex items-center gap-3 px-4 py-3 rounded-2xl text-[13px] font-bold transition-all duration-200 relative
+              className={`group flex items-center gap-3 px-3 py-2.5 rounded-xl text-[13px] font-semibold transition-colors relative
                 ${
                   active
-                    ? 'bg-blue-50 text-blue-600'
-                    : 'text-gray-500 hover:bg-gray-50 hover:text-gray-900'
+                    ? 'bg-brand-50 text-brand-700'
+                    : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
                 }`}
             >
               {active && (
-                <div className="absolute left-0 w-1 h-6 bg-blue-600 rounded-r-full" />
+                <div className="absolute left-0 w-0.5 h-5 bg-brand-600 rounded-r-full" />
               )}
               <Icon
-                size={18}
-                className={`${active ? 'text-blue-600' : 'text-gray-400 group-hover:text-gray-600'}`}
+                size={17}
+                className={`${active ? 'text-brand-600' : 'text-slate-400 group-hover:text-slate-600'}`}
               />
               <span>{label}</span>
             </Link>
@@ -128,37 +124,35 @@ const AdminNavBar = () => {
         })}
 
         <div className="pt-4">
-          <p className="px-4 text-[10px] font-bold text-gray-400 uppercase tracking-[0.2em] mb-4">
-            Тайлан мэдээ
-          </p>
+          <p className="eyebrow px-3 mb-3">Тайлан мэдээ</p>
           <button
             onClick={() => setOpenMenu(openMenu === 'report' ? '' : 'report')}
-            className={`w-full flex items-center gap-3 px-4 py-3 rounded-2xl text-[13px] font-bold transition-all duration-200
-              ${openMenu === 'report' ? 'bg-gray-50 text-gray-900' : 'text-gray-500 hover:bg-gray-50 hover:text-gray-900'}`}
+            className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-[13px] font-semibold transition-colors
+              ${openMenu === 'report' ? 'bg-slate-50 text-slate-900' : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'}`}
           >
-            <FiPieChart size={18} className="text-gray-400" />
+            <FiPieChart size={17} className="text-slate-400" />
             <span className="flex-1 text-left">Тайлангууд</span>
             {openMenu === 'report' ? (
-              <FiChevronUp size={14} className="text-gray-400" />
+              <FiChevronUp size={14} className="text-slate-400" />
             ) : (
-              <FiChevronDown size={14} className="text-gray-400" />
+              <FiChevronDown size={14} className="text-slate-400" />
             )}
           </button>
 
           {openMenu === 'report' && (
-            <div className="mt-1 ml-4 space-y-1 border-l-2 border-gray-100 pl-4 animate-in slide-in-from-top-2 duration-200">
+            <div className="mt-1 ml-4 space-y-0.5 border-l border-slate-100 pl-3 animate-in slide-in-from-top-2 duration-200">
               <Link
                 href="/duzadmin/taillan/sankhuu"
-                className="flex items-center gap-2 px-3 py-2.5 rounded-xl text-[12px] font-bold text-gray-500 hover:text-blue-600 hover:bg-blue-50/50 transition-all"
+                className="flex items-center gap-2 px-3 py-2 rounded-lg text-[13px] font-medium text-slate-500 hover:text-brand-700 hover:bg-brand-50 transition-colors"
               >
-                <FiFileText size={14} />
+                <FiFileText size={13} />
                 <span>Санхүүгийн тайлан</span>
               </Link>
               <Link
                 href="/duzadmin/taillan/uil-ajillagaa"
-                className="flex items-center gap-2 px-3 py-2.5 rounded-xl text-[12px] font-bold text-gray-500 hover:text-blue-600 hover:bg-blue-50/50 transition-all"
+                className="flex items-center gap-2 px-3 py-2 rounded-lg text-[13px] font-medium text-slate-500 hover:text-brand-700 hover:bg-brand-50 transition-colors"
               >
-                <FiFileText size={14} />
+                <FiFileText size={13} />
                 <span>Үйл ажиллагааны тайлан</span>
               </Link>
             </div>
@@ -166,13 +160,13 @@ const AdminNavBar = () => {
         </div>
       </nav>
 
-      <div className="p-4 mt-auto border-t border-gray-50">
+      <div className="p-3 mt-auto border-t border-slate-100">
         <button
           onClick={handleLogout}
-          className="w-full flex items-center gap-3 px-4 py-4 rounded-2xl text-[13px] font-bold text-red-500 hover:bg-red-50 transition-all duration-200"
+          className="w-full flex items-center gap-3 px-3 py-3 rounded-xl text-[13px] font-semibold text-rose-600 hover:bg-rose-50 transition-colors"
         >
-          <div className="bg-red-100 p-2 rounded-lg">
-            <FiLogOut size={16} />
+          <div className="bg-rose-100 p-1.5 rounded-lg">
+            <FiLogOut size={15} />
           </div>
           <span>Системээс гарах</span>
         </button>

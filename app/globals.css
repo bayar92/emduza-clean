@@ -2,77 +2,177 @@
 @import 'slick-carousel/slick/slick.css';
 @import 'slick-carousel/slick/slick-theme.css';
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
+/* ─── Design tokens ──────────────────────────────────────────────────────
+   Brand palette is a deep navy + green pair from the gov't health insurance
+   identity. Every other surface color is a neutral on top of these. Avoid
+   adding new hardcoded hex values in components — extend the scale here.
+   ──────────────────────────────────────────────────────────────────────── */
+@theme {
+  /* Brand */
+  --color-brand-50:  #EBF2FB;
+  --color-brand-100: #D2E0F2;
+  --color-brand-200: #A6C2E5;
+  --color-brand-300: #6F9DD2;
+  --color-brand-400: #2E6FB8;
+  --color-brand-500: #1565C0;
+  --color-brand-600: #0D47A1;
+  --color-brand-700: #0A3478;
+  --color-brand-800: #062555;
+  --color-brand-900: #041838;
+
+  --color-accent-500: #2E7D32;
+  --color-accent-600: #1B5E20;
+
+  /* Surfaces */
+  --color-surface:        #FFFFFF;
+  --color-surface-muted:  #F8FAFC;
+  --color-surface-subtle: #F1F5F9;
+
+  /* Text */
+  --color-ink:           #0F172A;
+  --color-ink-secondary: #475569;
+  --color-ink-tertiary:  #94A3B8;
+  --color-ink-quaternary:#CBD5E1;
+
+  /* Radius scale — pick one of these in every component */
+  --radius-xs: 6px;
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-xl: 20px;
+  --radius-2xl: 24px;
+
+  /* Elevation */
+  --shadow-card:        0 1px 2px rgba(15, 23, 42, 0.04), 0 1px 3px rgba(15, 23, 42, 0.06);
+  --shadow-card-hover:  0 8px 24px -8px rgba(15, 23, 42, 0.12), 0 2px 4px rgba(15, 23, 42, 0.06);
+  --shadow-nav:         0 1px 0 rgba(15, 23, 42, 0.04), 0 4px 20px -8px rgba(15, 23, 42, 0.08);
+  --shadow-modal:       0 20px 50px -20px rgba(15, 23, 42, 0.25);
 }
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
+  --color-background: var(--color-surface);
+  --color-foreground: var(--color-ink);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
-}
-
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: var(--color-surface);
+  color: var(--color-ink);
+  font-family: var(--font-geist-sans), system-ui, -apple-system, 'Segoe UI', sans-serif;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
 }
 
-@keyframes fadeSlide {
-  from {
-    opacity: 0;
-    transform: translateY(6px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+/* ─── Reusable utility classes ─────────────────────────────────────────── */
+
+/* Eyebrow: small uppercase label above a section title.
+   Replaces the ad-hoc "text-[10px] font-bold uppercase tracking-widest" copy
+   that appears across most pages. */
+.eyebrow {
+  font-size: 11px;
+  line-height: 1.4;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--color-ink-tertiary);
 }
 
-.animate-fadeSlide {
-  animation: fadeSlide 0.2s ease-out;
+/* Section header underline dot used throughout (the small blue rectangle). */
+.section-tick {
+  display: inline-block;
+  width: 4px;
+  height: 24px;
+  border-radius: 999px;
+  background: var(--color-brand-600);
 }
 
-@keyframes slideDown {
-  from {
-    opacity: 0;
-    transform: translateY(-10px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+.card {
+  background: var(--color-surface);
+  border: 1px solid rgb(241 245 249);
+  border-radius: var(--radius-2xl);
+  box-shadow: var(--shadow-card);
 }
 
-.animate-slideDown {
-  animation: slideDown 0.25s ease-out;
+.card-hover {
+  transition: box-shadow 200ms ease, transform 200ms ease;
+}
+.card-hover:hover {
+  box-shadow: var(--shadow-card-hover);
+  transform: translateY(-2px);
+}
+
+.btn-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 10px 20px;
+  font-weight: 700;
+  font-size: 13px;
+  border-radius: var(--radius-md);
+  background: var(--color-brand-600);
+  color: white;
+  transition: background-color 150ms ease, transform 100ms ease;
+}
+.btn-primary:hover {
+  background: var(--color-brand-700);
+}
+.btn-primary:active {
+  transform: scale(0.97);
+}
+.btn-primary:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.btn-ghost {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 10px 20px;
+  font-weight: 700;
+  font-size: 13px;
+  border-radius: var(--radius-md);
+  background: transparent;
+  color: var(--color-ink-secondary);
+  transition: background-color 150ms ease;
+}
+.btn-ghost:hover {
+  background: var(--color-surface-subtle);
+  color: var(--color-ink);
 }
 
 .badge {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  padding: 4px 12px;
+  gap: 4px;
+  padding: 3px 10px;
   white-space: nowrap;
-  border-radius: 9999px; /* Бүх талын дугуйралт */
-  font-weight: 600;
+  border-radius: 9999px;
+  font-weight: 700;
+  font-size: 11px;
+  line-height: 1.4;
 }
 
+/* ─── Animations ───────────────────────────────────────────────────────── */
+@keyframes fadeSlide {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.animate-fadeSlide { animation: fadeSlide 0.2s ease-out; }
+
+@keyframes slideDown {
+  from { opacity: 0; transform: translateY(-10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.animate-slideDown { animation: slideDown 0.25s ease-out; }
+
 @keyframes loading-bar {
-  0%   { width: 0%; margin-left: 0; }
+  0%   { width: 0%;  margin-left: 0; }
   50%  { width: 70%; margin-left: 0; }
   100% { width: 100%; margin-left: 0; }
 }
-
-.animate-loading-bar {
-  animation: loading-bar 1.2s ease-in-out infinite;
-}
+.animate-loading-bar { animation: loading-bar 1.2s ease-in-out infinite; }

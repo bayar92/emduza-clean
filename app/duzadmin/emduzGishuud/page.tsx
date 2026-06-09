@@ -1,5 +1,6 @@
 'use client';
-import React, { useState, useEffect } from 'react';
+import React, { useState, useMemo } from 'react';
+import useSWR from 'swr';
 import axios from 'axios';
 import Image from 'next/image';
 import withAuth from '@/components/withAuth';
@@ -7,6 +8,7 @@ import Head from 'next/head';
 import { useRouter } from 'next/navigation';
 import SuccessModal from '@/components/SuccessModal';
 import { useDialog } from '@/components/useDialog';
+import { jsonFetcher } from '@/utils/swr';
 import { FiEdit2, FiTrash2, FiPlus, FiUsers, FiSearch } from 'react-icons/fi';
 
 type Member = {
@@ -22,32 +24,31 @@ type Member = {
 
 const EmduzGishuud = () => {
   const { confirm, dialog } = useDialog();
-  const [members, setMembers] = useState<Member[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [modalOpen, setModalOpen] = useState(false);
-  const [modalMsg, setModalMsg] = useState('');
+  const { data: rawMembers, isLoading, error, mutate } = useSWR<Member[]>(
+    '/api/members',
+    jsonFetcher
+  );
+  const [actionModal, setActionModal] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
 
   const router = useRouter();
 
-  useEffect(() => {
-    const fetchMembers = async () => {
-      try {
-        const response = await axios.get('/api/members');
-        const all = response.data.sort(
-          (a: Member, b: Member) =>
-            new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-        );
-        setMembers(all);
-      } catch {
-        setModalMsg('Гишүүдийн жагсаалт татаж чадсангүй');
-        setModalOpen(true);
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchMembers();
-  }, []);
+  const members = useMemo(
+    () =>
+      [...(rawMembers ?? [])].sort(
+        (a, b) =>
+          new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+      ),
+    [rawMembers]
+  );
+
+  // Show fetch errors via the same modal as action results. The fetch error
+  // takes priority only when no action message is queued.
+  const modalMsg =
+    actionModal ?? (error ? 'Гишүүдийн жагсаалт татаж чадсангүй' : '');
+  const modalOpen = modalMsg !== '';
+
+  const loading = isLoading;
 
   const handleAdd = () => router.push('/duzadmin/gishuud');
 
@@ -63,12 +64,13 @@ const EmduzGishuud = () => {
     if (!(await confirm('Та энэ гишүүнийг устгахдаа итгэлтэй байна уу?'))) return;
     try {
       await axios.delete(`/api/members?id=${id}`);
-      setMembers((prev) => prev.filter((item) => item.id !== id));
-      setModalMsg('Амжилттай устгалаа');
-      setModalOpen(true);
+      await mutate(
+        (current) => (current ?? []).filter((item) => item.id !== id),
+        { revalidate: true }
+      );
+      setActionModal('Амжилттай устгалаа');
     } catch {
-      setModalMsg('Устгаж чадсангүй');
-      setModalOpen(true);
+      setActionModal('Устгаж чадсангүй');
     }
   };
 
@@ -230,7 +232,7 @@ const EmduzGishuud = () => {
         <SuccessModal
           open={modalOpen}
           message={modalMsg}
-          onClose={() => setModalOpen(false)}
+          onClose={() => setActionModal(null)}
         />
       </div>
     </div>

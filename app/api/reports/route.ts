@@ -1,10 +1,16 @@
 import { prisma } from '@/utils/prisma';
 import { NextResponse } from 'next/server';
+import { revalidatePath } from 'next/cache';
 import { writeFile, mkdir, unlink } from 'fs/promises';
 import path from 'path';
 
 function getUploadDir() {
   return process.env.UPLOAD_DIR || path.join(process.cwd(), 'uploads');
+}
+
+function invalidate(type?: string) {
+  if (type === 'financial' || !type) revalidatePath('/taillan/sankhuu');
+  if (type === 'activity' || !type) revalidatePath('/taillan/uil-ajillagaa');
 }
 
 async function saveFile(file: File, origName: string): Promise<string> {
@@ -48,6 +54,7 @@ export async function POST(req: Request) {
     data: { title, filename, year, type },
   });
 
+  invalidate(type);
   return NextResponse.json(created, { status: 201 });
 }
 
@@ -57,7 +64,7 @@ export async function DELETE(req: Request) {
 
   const existing = await prisma.report.findUnique({
     where: { id },
-    select: { filename: true },
+    select: { filename: true, type: true },
   });
 
   if (existing?.filename) {
@@ -66,5 +73,6 @@ export async function DELETE(req: Request) {
   }
 
   await prisma.report.delete({ where: { id } });
+  invalidate(existing?.type);
   return new NextResponse(null, { status: 204 });
 }

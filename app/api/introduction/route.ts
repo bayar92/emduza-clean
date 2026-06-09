@@ -1,6 +1,11 @@
 import { NextResponse } from 'next/server';
+import { revalidatePath } from 'next/cache';
 import { prisma } from '@/utils/prisma';
 import { sanitizeHtml } from '@/utils/sanitize';
+
+function invalidate() {
+  revalidatePath('/taniltsuulga');
+}
 
 export async function GET() {
   try {
@@ -22,6 +27,7 @@ export async function POST(req: Request) {
       data: { content: sanitizeHtml(content) },
     });
 
+    invalidate();
     return NextResponse.json(created, { status: 201 });
   } catch {
     return NextResponse.json(
@@ -44,6 +50,7 @@ export async function PUT(req: Request) {
         data: { content: clean },
       });
 
+      invalidate();
       return NextResponse.json(updated, { status: 200 });
     }
 
@@ -51,6 +58,7 @@ export async function PUT(req: Request) {
       data: { content: clean },
     });
 
+    invalidate();
     return NextResponse.json(created, { status: 201 });
   } catch {
     return NextResponse.json(

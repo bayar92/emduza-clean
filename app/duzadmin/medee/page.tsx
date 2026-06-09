@@ -1,10 +1,12 @@
 'use client';
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState } from 'react';
+import useSWR from 'swr';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import DOMPurify from 'dompurify';
 import { useDialog } from '@/components/useDialog';
+import { jsonFetcher } from '@/utils/swr';
 import {
   FiEdit3,
   FiTrash2,
@@ -29,37 +31,20 @@ export default function Medee() {
   const router = useRouter();
   const { confirm, alert, dialog } = useDialog();
 
-  const [news, setNews] = useState<NewsItem[]>([]);
-  const [error, setError] = useState('');
-  const [loading, setLoading] = useState(true);
+  const { data: news = [], isLoading, error, mutate } = useSWR<NewsItem[]>(
+    '/api/news',
+    jsonFetcher
+  );
+
   const [page, setPage] = useState(1);
   const perPage = 12;
-
-  const fetchNews = useCallback(async () => {
-    setLoading(true);
-    try {
-      const res = await fetch('/api/news');
-      const data = await res.json();
-      setNews(data);
-    } catch {
-      setError('Мэдээлэл татахад алдаа гарлаа');
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    fetchNews();
-  }, [fetchNews]);
 
   const handleDelete = async (id: number) => {
     if (!(await confirm('Та энэ мэдээг устгахдаа итгэлтэй байна уу?'))) return;
 
     try {
-      await fetch(`/api/news?id=${id}`, {
-        method: 'DELETE',
-      });
-      fetchNews();
+      await fetch(`/api/news?id=${id}`, { method: 'DELETE' });
+      await mutate();
     } catch {
       await alert('Устгахад алдаа гарлаа');
     }
@@ -72,7 +57,7 @@ export default function Medee() {
   const paginated = news.slice((page - 1) * perPage, page * perPage);
   const pageCount = Math.ceil(news.length / perPage);
 
-  if (loading && news.length === 0) {
+  if (isLoading && news.length === 0) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-[#F8FAFC]">
         <div className="animate-spin rounded-full h-10 w-10 border-4 border-blue-600/20 border-t-blue-600"></div>
@@ -108,7 +93,7 @@ export default function Medee() {
       <div className="max-w-7xl mx-auto px-6 mt-8">
         {error && (
           <div className="mb-6 p-4 bg-red-50 border-l-4 border-red-500 text-red-700 text-sm font-bold rounded-r-xl">
-            {error}
+            Мэдээлэл татахад алдаа гарлаа
           </div>
         )}
 

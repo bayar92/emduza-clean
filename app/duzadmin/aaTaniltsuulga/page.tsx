@@ -1,44 +1,45 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
+import useSWR from 'swr';
 import axios from 'axios';
 import Head from 'next/head';
 import withAuth from '@/components/withAuth';
 import dynamic from 'next/dynamic';
 import SuccessModal from '@/components/SuccessModal';
+import { jsonFetcher } from '@/utils/swr';
 import { FiSave, FiFileText, FiInfo } from 'react-icons/fi';
+
+type IntroPayload = { id: number; content: string } | null;
 
 const TiptapEditor = dynamic(() => import('@/components/TiptapEditor'), {
   ssr: false,
 });
 
 const AaTaniltsuulga = () => {
+  const { data, isLoading: loading, error: fetchError, mutate } =
+    useSWR<IntroPayload>('/api/aaIntroduction', jsonFetcher, {
+      revalidateOnFocus: false,
+    });
+
+  // Editor state is locally mutable, so seed it from the fetched record once
+  // per record-id change. This avoids useEffect for the "props → state" sync.
   const [editorContent, setEditorContent] = useState('');
-  const [loading, setLoading] = useState(true);
+  const [seededId, setSeededId] = useState<number | null>(null);
+  const dataId = data?.id ?? null;
+  if (dataId !== seededId) {
+    setSeededId(dataId);
+    setEditorContent(data?.content ?? '');
+  }
+
+  const existingId = dataId;
   const [saveLoading, setSaveLoading] = useState(false);
-  const [existingId, setExistingId] = useState<number | null>(null);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
-
   const [modalOpen, setModalOpen] = useState(false);
 
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const response = await axios.get('/api/aaIntroduction');
-        if (response.data) {
-          setEditorContent(response.data.content);
-          setExistingId(response.data.id);
-        }
-      } catch {
-        setError('Мэдээлэл татахад алдаа гарлаа');
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchData();
-  }, []);
+  const displayedError =
+    error || (fetchError ? 'Мэдээлэл татахад алдаа гарлаа' : '');
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -51,13 +52,11 @@ const AaTaniltsuulga = () => {
         await axios.put('/api/aaIntroduction', { content: editorContent });
         message = 'Амжилттай засвар орууллаа';
       } else {
-        const response = await axios.post('/api/aaIntroduction', {
-          content: editorContent,
-        });
-        setExistingId(response.data.id);
+        await axios.post('/api/aaIntroduction', { content: editorContent });
         message = 'Амжилттай хадгаллаа';
       }
 
+      await mutate();
       setSuccess(message);
       setModalOpen(true);
     } catch {
@@ -113,11 +112,11 @@ const AaTaniltsuulga = () => {
       </div>
 
       <div className="max-w-6xl mx-auto px-6 mt-10">
-        {error && (
+        {displayedError && (
           <div className="mb-6 animate-in fade-in slide-in-from-top-2">
             <div className="bg-red-50 border-l-4 border-red-500 text-red-700 p-4 rounded-r-xl shadow-sm flex items-center gap-3">
               <FiInfo className="flex-shrink-0" />
-              <span className="text-sm font-semibold">{error}</span>
+              <span className="text-sm font-semibold">{displayedError}</span>
             </div>
           </div>
         )}

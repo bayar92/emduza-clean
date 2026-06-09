@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { saveUploadedFile } from "@/utils/uploadFile";
-import { validateImage } from "@/utils/fileValidation";
+import { validateImageAsync } from "@/utils/fileValidation";
 import { v4 as uuidv4 } from "uuid";
 
 export const dynamic = "force-dynamic";
@@ -15,7 +15,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "No file provided" }, { status: 400 });
     }
 
-    const validationError = validateImage(file);
+    const validationError = await validateImageAsync(file);
     if (validationError) {
       return NextResponse.json({ error: validationError }, { status: 400 });
     }

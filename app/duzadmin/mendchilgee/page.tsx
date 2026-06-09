@@ -1,12 +1,18 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
+import useSWR from 'swr';
 import Image from 'next/image';
 import axios from 'axios';
 import Head from 'next/head';
 import withAuth from '@/components/withAuth';
 import dynamic from 'next/dynamic';
 import SuccessModal from '@/components/SuccessModal';
+import { jsonFetcher } from '@/utils/swr';
+
+type MendPayload =
+  | { id: number; name: string | null; company: string; image: string }
+  | null;
 import {
   FiSave,
   FiImage,
@@ -18,41 +24,44 @@ const TiptapEditor = dynamic(() => import('@/components/TiptapEditor'), {
   ssr: false,
 });
 
+function normalizeImagePath(raw: string | null | undefined): string | null {
+  if (!raw) return null;
+  const cleaned = raw.replace(/^public\//, '');
+  return cleaned.startsWith('/') ? cleaned : `/${cleaned}`;
+}
+
 const Mendchilgee = () => {
+  const { data, isLoading: loading, error: fetchError, mutate } =
+    useSWR<MendPayload>('/api/mend', jsonFetcher, {
+      revalidateOnFocus: false,
+    });
+
+  // Local editable state, seeded from SWR data once per loaded record-id.
   const [editorContent, setEditorContent] = useState('');
   const [name, setName] = useState('');
   const [image, setImage] = useState<File | string>('');
   const [imagePreview, setImagePreview] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [seededId, setSeededId] = useState<number | null>(null);
+
+  const dataId = data?.id ?? null;
+  if (dataId !== seededId) {
+    setSeededId(dataId);
+    setName(data?.name ?? '');
+    setEditorContent(data?.company ?? '');
+    const imgPath = normalizeImagePath(data?.image);
+    setImage(imgPath ?? '');
+    setImagePreview(imgPath);
+  }
+
+  const existingId = dataId;
   const [saveLoading, setSaveLoading] = useState(false);
-  const [existingId, setExistingId] = useState(null);
   const [error, setError] = useState('');
 
   const [modalOpen, setModalOpen] = useState(false);
   const [modalMessage, setModalMessage] = useState('');
 
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const response = await axios.get('/api/mend');
-        if (response.data) {
-          setName(response.data.name);
-          setEditorContent(response.data.company);
-          const imgPath = (response.data.image || '').replace(/^public\//, '');
-          setImage(imgPath);
-          if (imgPath) {
-            setImagePreview(imgPath.startsWith('/') ? imgPath : `/${imgPath}`);
-          }
-          setExistingId(response.data.id);
-        }
-      } catch {
-        setError('Мэдээлэл татахад алдаа гарлаа');
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchData();
-  }, []);
+  const displayedError =
+    error || (fetchError ? 'Мэдээлэл татахад алдаа гарлаа' : '');
 
   const handleImageChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -78,23 +87,15 @@ const Mendchilgee = () => {
       setError('');
       let msg = '';
       if (existingId) {
-        const response = await axios.put('/api/mend', formData);
-        if (response.data?.image) {
-          const newPath = response.data.image.replace(/^public\//, '');
-          setImage(newPath);
-          setImagePreview(newPath.startsWith('/') ? newPath : `/${newPath}`);
-        }
+        await axios.put('/api/mend', formData);
         msg = 'Амжилттай засвар орууллаа';
       } else {
-        const response = await axios.post('/api/mend', formData);
-        setExistingId(response.data.id);
-        if (response.data?.image) {
-          const newPath = response.data.image.replace(/^public\//, '');
-          setImage(newPath);
-          setImagePreview(newPath.startsWith('/') ? newPath : `/${newPath}`);
-        }
+        await axios.post('/api/mend', formData);
         msg = 'Амжилттай хадгаллаа';
       }
+
+      // Refetch — SWR data flowing through will reseed editor + image preview.
+      await mutate();
 
       setModalMessage(msg);
       setModalOpen(true);
@@ -154,9 +155,9 @@ const Mendchilgee = () => {
       </div>
 
       <div className="max-w-6xl mx-auto px-6 mt-10">
-        {error && (
+        {displayedError && (
           <div className="mb-6 bg-red-50 border-l-4 border-red-500 text-red-700 p-4 rounded-r-xl shadow-sm text-sm font-semibold flex items-center gap-2">
-            <FiSave /> {error}
+            <FiSave /> {displayedError}
           </div>
         )}
 

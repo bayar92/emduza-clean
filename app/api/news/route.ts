@@ -1,14 +1,24 @@
 import { prisma } from '@/utils/prisma';
 import { NextResponse } from 'next/server';
+import { revalidatePath } from 'next/cache';
 import { unlink } from 'fs/promises';
 import path from 'path';
 import { v4 as uuidv4 } from 'uuid';
-import { validateImage } from '@/utils/fileValidation';
+import { validateImageAsync } from '@/utils/fileValidation';
 import { saveUploadedFile } from '@/utils/uploadFile';
 import { sanitizeHtml } from '@/utils/sanitize';
 
 async function saveFile(file: File, folder: string) {
   return saveUploadedFile(file, folder, uuidv4());
+}
+
+function invalidateNewsPages(slug?: string) {
+  revalidatePath('/');
+  revalidatePath('/medee');
+  revalidatePath('/medee/huraldaanii-toim');
+  revalidatePath('/medee/technikiin-khoroo');
+  revalidatePath('/medee/hynalt-unelgee');
+  if (slug) revalidatePath(`/medee/${slug}`);
 }
 
 export async function GET(req: Request) {
@@ -47,14 +57,14 @@ export async function POST(req: Request) {
 
     let coverPath = '';
     if (coverImage) {
-      const err = validateImage(coverImage);
+      const err = await validateImageAsync(coverImage);
       if (err) return NextResponse.json({ error: err }, { status: 400 });
       coverPath = await saveFile(coverImage, 'news');
     }
 
     const imagePaths: string[] = [];
     for (const img of images) {
-      const err = validateImage(img);
+      const err = await validateImageAsync(img);
       if (err) return NextResponse.json({ error: err }, { status: 400 });
       const p = await saveFile(img, 'news');
       imagePaths.push(p);
@@ -75,6 +85,7 @@ export async function POST(req: Request) {
       },
     });
 
+    invalidateNewsPages(slug);
     return NextResponse.json(item, { status: 201 });
   } catch (err: unknown) {
     console.error('POST news error:', err);
@@ -87,10 +98,12 @@ export async function DELETE(req: Request) {
     const { searchParams } = new URL(req.url);
     const id = Number(searchParams.get('id'));
 
-    await prisma.news.delete({
+    const deleted = await prisma.news.delete({
       where: { id },
+      select: { slug: true },
     });
 
+    invalidateNewsPages(deleted.slug);
     return new NextResponse(null, { status: 204 });
   } catch {
     return NextResponse.json({ error: 'Delete failed' }, { status: 500 });
@@ -123,7 +136,7 @@ export async function PUT(req: Request) {
     let coverPath = existing.coverImage;
 
     if (coverImage) {
-      const err = validateImage(coverImage);
+      const err = await validateImageAsync(coverImage);
       if (err) return NextResponse.json({ error: err }, { status: 400 });
 
       coverPath = await saveFile(coverImage, 'news');
@@ -144,7 +157,7 @@ export async function PUT(req: Request) {
     }
 
     for (const img of newImages) {
-      const err = validateImage(img);
+      const err = await validateImageAsync(img);
       if (err) return NextResponse.json({ error: err }, { status: 400 });
       const p = await saveFile(img, 'news');
       updatedImages.push(p);
@@ -164,6 +177,7 @@ export async function PUT(req: Request) {
       },
     });
 
+    invalidateNewsPages(updated.slug);
     return NextResponse.json(updated, { status: 200 });
   } catch (err: unknown) {
     console.error('PUT news error:', err);

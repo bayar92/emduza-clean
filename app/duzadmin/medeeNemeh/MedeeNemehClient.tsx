@@ -1,11 +1,23 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
+import useSWR from 'swr';
 import Image from 'next/image';
 import { useRouter, useSearchParams } from 'next/navigation';
 import TiptapEditor from '@/components/TiptapEditor';
 import Head from 'next/head';
 import { useDialog } from '@/components/useDialog';
+import { jsonFetcher } from '@/utils/swr';
+
+type NewsRecord = {
+  id: number;
+  title: string;
+  category: string;
+  content: string;
+  date: string;
+  coverImage: string;
+  images: string[];
+};
 import {
   FiSave,
   FiArrowLeft,
@@ -24,6 +36,12 @@ export default function MedeeNemehClient() {
   const slug = params.get('slug');
   const { alert, dialog } = useDialog();
 
+  const { data: loadedItem } = useSWR<NewsRecord>(
+    slug ? `/api/news?slug=${slug}` : null,
+    jsonFetcher,
+    { revalidateOnFocus: false }
+  );
+
   const [title, setTitle] = useState('');
   const [category, setCategory] = useState('Мэдээлэл');
   const [content, setContent] = useState('');
@@ -39,24 +57,19 @@ export default function MedeeNemehClient() {
 
   const [editId, setEditId] = useState<number | null>(null);
 
-  useEffect(() => {
-    if (!slug) return;
-
-    async function fetchItem() {
-      const res = await fetch(`/api/news?slug=${slug}`);
-      const data = await res.json();
-
-      setEditId(data.id);
-      setTitle(data.title);
-      setCategory(data.category);
-      setContent(data.content);
-      setDate(data.date ? data.date.split('T')[0] : '');
-      setCoverPreview(data.coverImage);
-      setOldImages(data.images || []);
-    }
-
-    fetchItem();
-  }, [slug]);
+  // Seed the editable form once per loaded record (slug → id). Re-derive
+  // through the "previous id" pattern instead of running an effect.
+  const [seededId, setSeededId] = useState<number | null>(null);
+  if (loadedItem && loadedItem.id !== seededId) {
+    setSeededId(loadedItem.id);
+    setEditId(loadedItem.id);
+    setTitle(loadedItem.title);
+    setCategory(loadedItem.category);
+    setContent(loadedItem.content);
+    setDate(loadedItem.date ? loadedItem.date.split('T')[0] : '');
+    setCoverPreview(loadedItem.coverImage);
+    setOldImages(loadedItem.images || []);
+  }
 
   const handleCoverChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const f = e.target.files?.[0];

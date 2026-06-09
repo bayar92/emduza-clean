@@ -10,6 +10,7 @@ import NewsComments from './NewsComments';
 import LatestNewsSidebar from './LatestNewsSidebar';
 import ShareButtons from '@/components/ShareButtons';
 
+
 export const dynamic = 'force-dynamic';
 
 interface PageProps {

@@ -1,10 +1,12 @@
 'use client';
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState } from 'react';
+import useSWR from 'swr';
 import withAuth from '@/components/withAuth';
 import axios from 'axios';
 import Head from 'next/head';
 import { useDialog } from '@/components/useDialog';
+import { jsonFetcher } from '@/utils/swr';
 import {
   FiEdit,
   FiTrash2,
@@ -27,9 +29,13 @@ type CommitteeItem = {
   Date: string;
 };
 
+type CommitteeListResponse = {
+  stcommittee: CommitteeItem[];
+  currentCommittee: number;
+};
+
 const ShiidwerPage = () => {
   const { confirm, dialog } = useDialog();
-  const [committee, setCommittee] = useState<CommitteeItem[]>([]);
   const [committeeText, setCommitteeText] = useState('');
   const [category, setCategory] = useState('УИХ, Байнгын хорооны шийдвэр');
   const [file, setFile] = useState<File | null>(null);
@@ -39,28 +45,19 @@ const ShiidwerPage = () => {
   const [saveLoading, setSaveLoading] = useState(false);
 
   const [page, setPage] = useState(1);
-  const [total, setTotal] = useState(0);
   const limit = 10;
 
   const [sortBy, setSortBy] = useState('createdAt');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
   const [editId, setEditId] = useState<number | null>(null);
 
-  const fetchCommittee = useCallback(async () => {
-    try {
-      const res = await axios.get(
-        `/api/standingCommittee?page=${page}&limit=${limit}&sortBy=${sortBy}&sortOrder=${sortOrder}`
-      );
-      setCommittee(res.data.stcommittee);
-      setTotal(res.data.currentCommittee);
-    } catch (err) {
-      console.error('Fetch committee error:', err);
-    }
-  }, [page, sortBy, sortOrder]);
-
-  useEffect(() => {
-    fetchCommittee();
-  }, [fetchCommittee]);
+  const { data, mutate } = useSWR<CommitteeListResponse>(
+    `/api/standingCommittee?page=${page}&limit=${limit}&sortBy=${sortBy}&sortOrder=${sortOrder}`,
+    jsonFetcher
+  );
+  const committee = data?.stcommittee ?? [];
+  const total = data?.currentCommittee ?? 0;
+  const fetchCommittee = () => mutate();
 
   const submitForm = async (e: React.FormEvent) => {
     e.preventDefault();

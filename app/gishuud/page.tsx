@@ -5,7 +5,7 @@ import { prisma } from "@/utils/prisma";
 import MemberListClient from "./MemberListClient";
 import { FiUsers } from "react-icons/fi";
 
-export const dynamic = "force-dynamic";
+export const dynamic = 'force-dynamic';
 
 export default async function Page() {
   const members = await prisma.members.findMany({

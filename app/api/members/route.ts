@@ -1,8 +1,14 @@
 import { prisma } from "@/utils/prisma";
 import { NextResponse } from "next/server";
-import { validateImage } from "@/utils/fileValidation";
+import { revalidatePath } from "next/cache";
+import { validateImageAsync } from "@/utils/fileValidation";
 import { saveUploadedFile } from "@/utils/uploadFile";
 import { sanitizeHtml } from "@/utils/sanitize";
+
+function invalidateMembers() {
+  revalidatePath("/");
+  revalidatePath("/gishuud");
+}
 
 export async function GET() {
   try {
@@ -33,7 +39,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Image is required" }, { status: 400 });
     }
 
-    const validationError = validateImage(file);
+    const validationError = await validateImageAsync(file);
     if (validationError) {
       return NextResponse.json({ error: validationError }, { status: 400 });
     }
@@ -51,6 +57,7 @@ export async function POST(req: Request) {
       },
     });
 
+    invalidateMembers();
     return NextResponse.json(newM, { status: 201 });
   } catch {
     return NextResponse.json(
@@ -67,6 +74,7 @@ export async function DELETE(req: Request) {
 
     await prisma.members.delete({ where: { id } });
 
+    invalidateMembers();
     return new NextResponse(null, { status: 204 });
   } catch {
     return NextResponse.json(
@@ -98,7 +106,7 @@ export async function PUT(req: Request) {
     let imagePath = existing.image;
 
     if (file && file.size > 0) {
-      const validationError = validateImage(file);
+      const validationError = await validateImageAsync(file);
       if (validationError) {
         return NextResponse.json({ error: validationError }, { status: 400 });
       }
@@ -117,6 +125,7 @@ export async function PUT(req: Request) {
       },
     });
 
+    invalidateMembers();
     return NextResponse.json(updated);
   } catch {
     return NextResponse.json(

@@ -1,10 +1,12 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
+import useSWR from 'swr';
 import axios from 'axios';
 import Head from 'next/head';
 import { useRouter } from 'next/navigation';
 import { useDialog } from '@/components/useDialog';
+import { jsonFetcher } from '@/utils/swr';
 import {
   FiVideo,
   FiPlus,
@@ -24,38 +26,32 @@ type VideoItem = {
   createdAt: string;
 };
 
+type VideoListResponse = { videos: VideoItem[]; totalVideos: number };
+
 export default function VideoMedee() {
   const router = useRouter();
   const { confirm, dialog } = useDialog();
 
   const [title, setTitle] = useState('');
   const [video, setVideo] = useState<File | null>(null);
-  const [videoNews, setVideoNews] = useState<VideoItem[]>([]);
   const [page, setPage] = useState(1);
   const [limit] = useState(5);
-  const [totalVideos, setTotalVideos] = useState(0);
 
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [loading, setLoading] = useState(false);
-  const [fetchLoading, setFetchLoading] = useState(true);
 
-  const fetchVideos = React.useCallback(async (p: number) => {
-    setFetchLoading(true);
-    try {
-      const res = await axios.get(`/api/video?page=${p}&limit=${limit}`);
-      setVideoNews(res.data.videos);
-      setTotalVideos(res.data.totalVideos);
-    } catch {
-      setError('Видео татаж чадсангүй');
-    } finally {
-      setFetchLoading(false);
-    }
-  }, [limit]);
+  const { data, isLoading: fetchLoading, error: fetchError, mutate } =
+    useSWR<VideoListResponse>(
+      `/api/video?page=${page}&limit=${limit}`,
+      jsonFetcher
+    );
 
-  useEffect(() => {
-    fetchVideos(page);
-  }, [page, fetchVideos]);
+  const videoNews = data?.videos ?? [];
+  const totalVideos = data?.totalVideos ?? 0;
+
+  // SWR-level fetch failures surface as a sticky banner like any other error.
+  const displayedError = error || (fetchError ? 'Видео татаж чадсангүй' : '');
 
   const handleVideoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -86,7 +82,7 @@ export default function VideoMedee() {
         setTitle('');
         setVideo(null);
 
-        if (page === 1) fetchVideos(1);
+        if (page === 1) await mutate();
         else setPage(1);
       }
     } catch {
@@ -102,7 +98,7 @@ export default function VideoMedee() {
 
     try {
       await axios.delete(`/api/video?id=${id}`);
-      fetchVideos(page);
+      await mutate();
     } catch {
       setError('Видео устгахад алдаа гарлаа.');
     }
@@ -142,9 +138,9 @@ export default function VideoMedee() {
             {success}
           </div>
         )}
-        {error && (
+        {displayedError && (
           <div className="mb-6 p-4 bg-red-50 border-l-4 border-red-500 text-red-700 text-sm font-bold rounded-r-xl animate-in fade-in slide-in-from-top-2">
-            {error}
+            {displayedError}
           </div>
         )}
 

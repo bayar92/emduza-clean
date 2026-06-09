@@ -1,10 +1,15 @@
 import { NextResponse } from 'next/server';
+import { revalidatePath } from 'next/cache';
 import { prisma } from '@/utils/prisma';
 import fs from 'fs';
 import path from 'path';
 import { v4 as uuidv4 } from 'uuid';
-import { validateVideo } from '@/utils/fileValidation';
+import { validateVideoAsync } from '@/utils/fileValidation';
 import { saveUploadedFile } from '@/utils/uploadFile';
+
+function invalidateVideos() {
+  revalidatePath('/');
+}
 
 export async function GET(req: Request) {
   try {
@@ -45,7 +50,7 @@ export async function POST(req: Request) {
       );
     }
 
-    const validationError = validateVideo(video);
+    const validationError = await validateVideoAsync(video);
     if (validationError) {
       return NextResponse.json({ error: validationError }, { status: 400 });
     }
@@ -56,6 +61,7 @@ export async function POST(req: Request) {
       data: { title, videoPath: savedPath },
     });
 
+    invalidateVideos();
     return NextResponse.json(newVideo, { status: 201 });
   } catch {
     return NextResponse.json(
@@ -90,6 +96,7 @@ export async function DELETE(req: Request) {
       if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
     }
 
+    invalidateVideos();
     return new NextResponse(null, { status: 204 });
   } catch {
     return NextResponse.json(

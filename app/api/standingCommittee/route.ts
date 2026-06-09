@@ -1,7 +1,15 @@
 import { NextResponse } from 'next/server';
+import { revalidatePath } from 'next/cache';
 import { prisma } from '@/utils/prisma';
 import { writeFile, mkdir } from 'fs/promises';
 import path from 'path';
+
+function invalidate() {
+  revalidatePath('/erkhzui');
+  revalidatePath('/erkhzui/shiidwer');
+  revalidatePath('/erkhzui/togtool');
+  revalidatePath('/erkhzui/emduz-togtool');
+}
 
 const ALLOWED_FILE_TYPES = [
   'application/pdf',
@@ -112,6 +120,7 @@ export async function POST(req: Request) {
       },
     });
 
+    invalidate();
     return NextResponse.json(committee, { status: 201 });
   } catch (error) {
     console.error('POST committee error:', error);
@@ -140,6 +149,7 @@ export async function PUT(req: Request) {
       data: { text, category },
     });
 
+    invalidate();
     return NextResponse.json(updated, { status: 200 });
   } catch {
     return NextResponse.json(
@@ -160,6 +170,7 @@ export async function DELETE(req: Request) {
 
     await prisma.stCommittee.delete({ where: { id } });
 
+    invalidate();
     return new NextResponse(null, { status: 204 });
   } catch {
     return NextResponse.json(

@@ -1,8 +1,10 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
+import useSWR from 'swr';
 import withAuth from '@/components/withAuth';
 import { useDialog } from '@/components/useDialog';
+import { jsonFetcher } from '@/utils/swr';
 import { FiUpload, FiTrash2, FiFileText, FiDownload, FiPlus, FiPieChart, FiCheckCircle } from 'react-icons/fi';
 
 type Report = {
@@ -23,28 +25,17 @@ const labelCls = 'block text-[11px] font-bold text-gray-400 uppercase tracking-w
 
 function ReportAdmin({ type, label }: Props) {
   const { confirm, dialog } = useDialog();
-  const [reports, setReports] = useState<Report[]>([]);
+  const { data, mutate } = useSWR<Report[]>(
+    `/api/reports?type=${type}`,
+    jsonFetcher
+  );
+  const reports: Report[] = Array.isArray(data) ? data : [];
+
   const [title, setTitle] = useState('');
   const [year, setYear] = useState(new Date().getFullYear());
   const [file, setFile] = useState<File | null>(null);
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState('');
-
-  const fetchReports = async () => {
-    const res = await fetch(`/api/reports?type=${type}`);
-    const data = await res.json();
-    setReports(Array.isArray(data) ? data : []);
-  };
-
-  useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      const res = await fetch(`/api/reports?type=${type}`);
-      const data = await res.json();
-      if (!cancelled) setReports(Array.isArray(data) ? data : []);
-    })();
-    return () => { cancelled = true; };
-  }, [type]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -61,7 +52,7 @@ function ReportAdmin({ type, label }: Props) {
       setTitle('');
       setFile(null);
       setMessage('Амжилттай нэмэгдлээ');
-      fetchReports();
+      await mutate();
     } else {
       setMessage('Алдаа гарлаа');
     }
@@ -71,7 +62,7 @@ function ReportAdmin({ type, label }: Props) {
   const handleDelete = async (id: number) => {
     if (!(await confirm('Устгах уу?'))) return;
     await fetch(`/api/reports?id=${id}`, { method: 'DELETE' });
-    fetchReports();
+    await mutate();
   };
 
   const currentYear = new Date().getFullYear();

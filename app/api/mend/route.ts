@@ -1,9 +1,15 @@
 import { prisma } from "@/utils/prisma";
-import { validateImage } from "@/utils/fileValidation";
+import { revalidatePath } from "next/cache";
+import { validateImageAsync } from "@/utils/fileValidation";
 import { saveUploadedFile } from "@/utils/uploadFile";
 import { sanitizeHtml } from "@/utils/sanitize";
 
 export const dynamic = "force-dynamic";
+
+function invalidate() {
+  revalidatePath("/mendchilgee");
+  revalidatePath("/");
+}
 
 export async function GET() {
   try {
@@ -25,7 +31,7 @@ export async function POST(req: Request) {
     let imagePath = null;
 
     if (file && file.size > 0) {
-      const validationError = validateImage(file);
+      const validationError = await validateImageAsync(file);
       if (validationError) {
         return Response.json({ error: validationError }, { status: 400 });
       }
@@ -40,6 +46,7 @@ export async function POST(req: Request) {
       },
     });
 
+    invalidate();
     return Response.json(newContent, { status: 201 });
   } catch (e) {
     console.error(e);
@@ -65,7 +72,7 @@ export async function PUT(req: Request) {
     };
 
     if (file && file.size > 0) {
-      const validationError = validateImage(file);
+      const validationError = await validateImageAsync(file);
       if (validationError) {
         return Response.json({ error: validationError }, { status: 400 });
       }
@@ -77,6 +84,7 @@ export async function PUT(req: Request) {
       data: updatedData,
     });
 
+    invalidate();
     return Response.json(updated);
   } catch (err) {
     console.error(err);

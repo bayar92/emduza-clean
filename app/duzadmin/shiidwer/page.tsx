@@ -54,7 +54,7 @@ const ShiidwerPage = () => {
       setCommittee(res.data.stcommittee);
       setTotal(res.data.currentCommittee);
     } catch (err) {
-      console.log('Fetch Error', err);
+      console.error('Fetch committee error:', err);
     }
   }, [page, sortBy, sortOrder]);
 

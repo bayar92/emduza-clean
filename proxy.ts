@@ -12,6 +12,8 @@ const PROTECTED_PATHS = [
   '/api/mend',
   '/api/reports',
   '/api/upload',
+  '/api/feedbackQuestions',
+  '/api/feedbackTopics',
 ];
 
 const READ_ONLY_METHODS = ['GET', 'HEAD', 'OPTIONS'];

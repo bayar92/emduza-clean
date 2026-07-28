@@ -3,39 +3,38 @@ generator client {
   output   = "../node_modules/.prisma/client"
 }
 
-
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 
 model User {
-  id        Int      @id @default(autoincrement())
-  email     String   @unique
   password  String
   createdAt DateTime @default(now())
+  email     String   @unique
   updatedAt DateTime @updatedAt
+  id        Int      @id @default(autoincrement())
 }
 
 model Goal {
-  id        Int      @id @default(autoincrement())
   text      String
-  filename  String?
+  id        Int      @id @default(autoincrement())
   createdAt DateTime @default(now())
+  filename  String?
   updatedAt DateTime @updatedAt
 }
 
 model News {
-  id        Int      @id @default(autoincrement())
-  title     String
-  category  String
-  content   String
+  id         Int       @id @default(autoincrement())
+  title      String
+  category   String
+  content    String
   coverImage String
-  images    String[]
-  slug      String  @unique
-  createdAt DateTime @default(now())
-  date DateTime @default(now())
-  comments  Comment[]
+  images     String[]
+  createdAt  DateTime  @default(now())
+  slug       String    @unique
+  date       DateTime  @default(now())
+  comments   Comment[]
 }
 
 model Video {
@@ -50,59 +49,59 @@ model StCommittee {
   id        Int      @id @default(autoincrement())
   text      String
   filename  String?
-  category  String?
-  number    Int
-  Date      DateTime
-  day       Int      
-  month     Int     
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+  category  String?
+  Date      DateTime
+  day       Int
+  month     Int
+  number    Int
 }
+
 model AaIntroduction {
-  id      String @id @default(uuid())
-  content String
+  id        String   @id @default(uuid())
+  content   String
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
 
 model Introduction {
-  id      String @id @default(uuid())
-  content String
+  id        String   @id @default(uuid())
+  content   String
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
 
-
 model TechMember {
-  id         Int      @id @default(autoincrement())
-  position   String
-  name       String?
-  education  String
-  company    String
-  research   String
-  image      String
+  id        Int     @id @default(autoincrement())
+  position  String
+  name      String?
+  education String
+  company   String
+  research  String
+  image     String
 }
 
 model Description {
-  id            Int      @id @default(autoincrement())
-  description   String
+  id          Int    @id @default(autoincrement())
+  description String
 }
 
 model Members {
-  id         Int      @id @default(autoincrement())
-  position   String
-  name       String?
-  education  String
-  company    String
-  parlament  String
-  image     String? 
+  id        Int     @id @default(autoincrement())
+  position  String
+  name      String?
+  education String
+  company   String
+  parlament String
+  image     String
 }
 
 model Mend {
-  id         Int      @id @default(autoincrement())
-  name       String?
-  company    String
-  image      String
+  id      Int     @id @default(autoincrement())
+  name    String?
+  company String
+  image   String
 }
 
 model Report {
@@ -112,16 +111,63 @@ model Report {
   year      Int
   type      String
   createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  updatedAt DateTime @default(now()) @updatedAt
+}
+
+model FeedbackTopic {
+  id        Int                @id @default(autoincrement())
+  title     String
+  createdAt DateTime           @default(now())
+  questions FeedbackQuestion[]
+}
+
+// type: 'TEXT' | 'YES_NO' | 'MULTIPLE_CHOICE' | 'MULTIPLE_CHOICE_FOLLOWUP'.
+// options holds string[] for the two MULTIPLE_CHOICE types.
+// A question can itself be a conditional follow-up of another question:
+// parentId + triggerValue say "show this question when the parent's answer
+// equals triggerValue" ('Тийм' for a YES_NO parent, or one of the parent's
+// options for a MULTIPLE_CHOICE_FOLLOWUP parent). topicId is denormalized
+// onto every node (including nested follow-ups) so a topic's whole question
+// tree can be fetched with one `where: { topicId }` query.
+model FeedbackQuestion {
+  id           Int                @id @default(autoincrement())
+  topicId      Int
+  topic        FeedbackTopic      @relation(fields: [topicId], references: [id], onDelete: Cascade)
+  parentId     Int?
+  parent       FeedbackQuestion?  @relation("FollowUp", fields: [parentId], references: [id], onDelete: Cascade)
+  followUps    FeedbackQuestion[] @relation("FollowUp")
+  triggerValue String?
+  type         String             @default("TEXT")
+  text         String
+  options      Json?
+  order        Int                @default(0)
+  createdAt    DateTime           @default(now())
+}
+
+// topicTitle and each answer's question text are snapshotted at submission
+// time (like Comment.name), so a submission stays readable even after its
+// topic or questions are later edited or deleted.
+// A submission is either a plain-text "Санал хүсэлт" (topicTitle/answers
+// null, message set) or a topic survey ("Судалгаа": topicTitle/answers set,
+// message null).
+model FeedbackSubmission {
+  id         Int      @id @default(autoincrement())
+  topicTitle String?
+  name       String
+  email      String
+  phone      String
+  message    String?
+  answers    Json?
+  createdAt  DateTime @default(now())
 }
 
 model Comment {
   id        Int      @id @default(autoincrement())
-  content   String
   name      String
+  content   String
   createdAt DateTime @default(now())
-  likes     Int      @default(0)
-  dislikes  Int      @default(0)
   newsId    Int
+  dislikes  Int      @default(0)
+  likes     Int      @default(0)
   news      News     @relation(fields: [newsId], references: [id])
 }

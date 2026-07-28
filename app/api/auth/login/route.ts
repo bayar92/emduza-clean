@@ -9,7 +9,14 @@ const MAX_ATTEMPTS = 5;
 const WINDOW_MS = 15 * 60 * 1000;
 
 function getClientIP(req: Request): string {
-  return req.headers.get('x-forwarded-for')?.split(',')[0].trim() ?? 'unknown';
+  // Take the last hop, not the first: X-Forwarded-For is built by each proxy
+  // appending the address it saw, so the entry closest to us (added by our
+  // own trusted reverse proxy) is the last one. Trusting the first entry
+  // would let a client set an arbitrary value and pick their own rate-limit
+  // bucket, bypassing the lockout entirely.
+  const chain = req.headers.get('x-forwarded-for')?.split(',');
+  const lastHop = chain?.[chain.length - 1]?.trim();
+  return lastHop || 'unknown';
 }
 
 function checkRateLimit(ip: string): boolean {

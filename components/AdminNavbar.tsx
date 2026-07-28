@@ -20,6 +20,7 @@ import {
   FiChevronUp,
   FiFileText,
   FiActivity,
+  FiMessageSquare,
 } from 'react-icons/fi';
 
 type NavItem = {
@@ -49,6 +50,11 @@ const NAV_ITEMS: NavItem[] = [
   { href: '/duzadmin/shiidwer', icon: FiLayers, label: 'Эрх зүй' },
   { href: '/duzadmin/medee', icon: FiDatabase, label: 'Мэдээ мэдээлэл' },
   { href: '/duzadmin/VideoMedee', icon: FiVideo, label: 'Видео мэдээ' },
+  {
+    href: '/duzadmin/sanalHuselt',
+    icon: FiMessageSquare,
+    label: 'Санал хүсэлт',
+  },
 ];
 
 const AdminNavBar = () => {

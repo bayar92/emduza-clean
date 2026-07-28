@@ -11,6 +11,7 @@ const PROTECTED_PATHS = [
   '/api/aaIntroduction',
   '/api/mend',
   '/api/reports',
+  '/api/upload',
 ];
 
 const READ_ONLY_METHODS = ['GET', 'HEAD', 'OPTIONS'];

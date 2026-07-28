@@ -24,6 +24,27 @@ function sanitizeFilename(name: string): string {
   return path.basename(name).replace(/[^а-яА-ЯөүёÖÜa-zA-Z0-9._\- ]/g, '_');
 }
 
+// Validates and saves an uploaded committee document, returning its stored
+// filename. Shared by POST (new entry) and PUT (replacing an existing
+// entry's file) so both go through the same checks.
+async function saveCommitteeFile(file: File): Promise<string | { error: string }> {
+  if (!ALLOWED_FILE_TYPES.includes(file.type)) {
+    return { error: 'Зөвхөн PDF, Word, Excel файл оруулна уу' };
+  }
+  if (file.size > MAX_FILE_SIZE) {
+    return { error: 'Файлын хэмжээ 100MB-с хэтрэхгүй байх ёстой' };
+  }
+
+  const bytes = await file.arrayBuffer();
+  const safeName = sanitizeFilename(file.name);
+  const uploadDir = process.env.UPLOAD_DIR || path.join(process.cwd(), 'uploads');
+  const targetDir = path.join(uploadDir, 'file');
+  await mkdir(targetDir, { recursive: true });
+  await writeFile(path.join(targetDir, safeName), Buffer.from(bytes));
+
+  return safeName;
+}
+
 export async function GET(req: Request) {
   try {
     const { searchParams } = new URL(req.url);
@@ -82,28 +103,11 @@ export async function POST(req: Request) {
     let filename: string | null = null;
 
     if (file) {
-      if (!ALLOWED_FILE_TYPES.includes(file.type)) {
-        return NextResponse.json(
-          { error: 'Зөвхөн PDF, Word, Excel файл оруулна уу' },
-          { status: 400 }
-        );
+      const result = await saveCommitteeFile(file);
+      if (typeof result !== 'string') {
+        return NextResponse.json(result, { status: 400 });
       }
-      if (file.size > MAX_FILE_SIZE) {
-        return NextResponse.json(
-          { error: 'Файлын хэмжээ 100MB-с хэтрэхгүй байх ёстой' },
-          { status: 400 }
-        );
-      }
-
-      const bytes = await file.arrayBuffer();
-      const safeName = sanitizeFilename(file.name);
-      const uploadDir =
-        process.env.UPLOAD_DIR || path.join(process.cwd(), "uploads");
-      const targetDir = path.join(uploadDir, "file");
-      await mkdir(targetDir, { recursive: true });
-      await writeFile(path.join(targetDir, safeName), Buffer.from(bytes));
-
-      filename = safeName;
+      filename = result;
     }
 
     const dateObj = new Date(date);
@@ -143,10 +147,20 @@ export async function PUT(req: Request) {
     const form = await req.formData();
     const text = form.get('text')?.toString() || '';
     const category = form.get('category')?.toString() || '';
+    const file = form.get('file') as File | null;
+
+    let filename: string | undefined;
+    if (file && file.size > 0) {
+      const result = await saveCommitteeFile(file);
+      if (typeof result !== 'string') {
+        return NextResponse.json(result, { status: 400 });
+      }
+      filename = result;
+    }
 
     const updated = await prisma.stCommittee.update({
       where: { id },
-      data: { text, category },
+      data: { text, category, ...(filename ? { filename } : {}) },
     });
 
     invalidate();

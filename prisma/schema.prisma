@@ -171,3 +171,33 @@ model Comment {
   likes     Int      @default(0)
   news      News     @relation(fields: [newsId], references: [id])
 }
+
+// Single-row table (id is always 1) holding the public contact details shown
+// in the site footer. Edited from /duzadmin/holbooBarih.
+model ContactInfo {
+  id         Int      @id @default(1)
+  address    String
+  phone      String
+  email      String
+  socialName String   @default("")
+  socialUrl  String   @default("")
+  updatedAt  DateTime @updatedAt
+}
+
+// Pages created by admins from /duzadmin/tses. Each one becomes a menu entry
+// in the top navigation (a standalone link, or inside one of the built-in
+// dropdowns named by `parent`) and is served at /khuudas/<slug>.
+model MenuPage {
+  id        Int      @id @default(autoincrement())
+  title     String
+  slug      String   @unique
+  // "" = standalone top-level link, otherwise the id of a built-in dropdown
+  // (about | news | law | report | dans). See utils/menuPages.ts.
+  parent    String   @default("")
+  // Sanitized HTML produced by the rich-text editor.
+  content   String   @default("")
+  sortOrder Int      @default(0)
+  published Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}

@@ -25,8 +25,24 @@ const LoginPage = () => {
       } else {
         setError("Нэвтрэх үед алдаа гарлаа. Дахин оролдоно уу.");
       }
-    } catch {
-      setError("Емайл хаяг эсвэл нууц үг буруу байна.");
+    } catch (err) {
+      const status = axios.isAxiosError(err) ? err.response?.status : undefined;
+      if (status === 429) {
+        // Locked out: show the server's message (includes the wait time).
+        const serverMsg = axios.isAxiosError(err)
+          ? err.response?.data?.error
+          : undefined;
+        setError(
+          serverMsg ??
+            "Хэт олон оролдлого хийсэн байна. Түр хүлээгээд дахин оролдоно уу."
+        );
+      } else if (status === 401) {
+        setError("Емайл хаяг эсвэл нууц үг буруу байна.");
+      } else if (status === 400) {
+        setError("Емайл хаяг болон нууц үгээ оруулна уу.");
+      } else {
+        setError("Серверийн алдаа гарлаа. Дахин оролдоно уу.");
+      }
     }
   };
 

@@ -1,64 +1,50 @@
 import { prisma } from '@/utils/prisma';
 import { env } from '@/utils/env';
+import {
+  checkLoginAllowed,
+  getClientIP,
+  recordLoginFailure,
+  recordLoginSuccess,
+} from '@/utils/loginRateLimit';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import { NextResponse } from 'next/server';
 
-const loginAttempts = new Map<string, { count: number; resetAt: number }>();
-const MAX_ATTEMPTS = 5;
-const WINDOW_MS = 15 * 60 * 1000;
+export async function POST(req: Request) {
+  const body = await req.json().catch(() => null);
+  const email = typeof body?.email === 'string' ? body.email : '';
+  const password = typeof body?.password === 'string' ? body.password : '';
 
-function getClientIP(req: Request): string {
-  // Take the last hop, not the first: X-Forwarded-For is built by each proxy
-  // appending the address it saw, so the entry closest to us (added by our
-  // own trusted reverse proxy) is the last one. Trusting the first entry
-  // would let a client set an arbitrary value and pick their own rate-limit
-  // bucket, bypassing the lockout entirely.
-  const chain = req.headers.get('x-forwarded-for')?.split(',');
-  const lastHop = chain?.[chain.length - 1]?.trim();
-  return lastHop || 'unknown';
-}
-
-function checkRateLimit(ip: string): boolean {
-  const now = Date.now();
-  const entry = loginAttempts.get(ip);
-
-  if (!entry || now > entry.resetAt) {
-    loginAttempts.set(ip, { count: 1, resetAt: now + WINDOW_MS });
-    return true;
+  if (!email || !password) {
+    return Response.json(
+      { error: 'Имэйл болон нууц үгээ оруулна уу.' },
+      { status: 400 }
+    );
   }
 
-  if (entry.count >= MAX_ATTEMPTS) return false;
-
-  entry.count += 1;
-  return true;
-}
-
-function resetRateLimit(ip: string) {
-  loginAttempts.delete(ip);
-}
-
-export async function POST(req: Request) {
   const ip = getClientIP(req);
 
-  if (!checkRateLimit(ip)) {
+  const gate = checkLoginAllowed(ip, email);
+  if (!gate.allowed) {
+    console.warn(`[login] blocked by ${gate.by} limit (ip=${ip})`);
+    const minutes = Math.ceil(gate.retryAfterSeconds / 60);
     return Response.json(
       {
-        error:
-          'Хэт олон оролдлого хийсэн байна. 15 минутын дараа дахин оролдоно уу.',
+        error: `Хэт олон оролдлого хийсэн байна. ${minutes} минутын дараа дахин оролдоно уу.`,
       },
-      { status: 429 }
+      {
+        status: 429,
+        headers: { 'Retry-After': String(gate.retryAfterSeconds) },
+      }
     );
   }
 
   try {
-    const body = await req.json();
-    const { email, password } = body;
-
     const user = await prisma.user.findUnique({
       where: { email },
     });
     if (!user) {
+      recordLoginFailure(ip, email);
       return Response.json(
         { error: 'Invalid email or password' },
         { status: 401 }
@@ -67,6 +53,7 @@ export async function POST(req: Request) {
 
     const isPasswordValid = await bcrypt.compare(password, user.password);
     if (!isPasswordValid) {
+      recordLoginFailure(ip, email);
       return Response.json(
         { error: 'Invalid email or password' },
         { status: 401 }
@@ -75,7 +62,7 @@ export async function POST(req: Request) {
 
     const token = jwt.sign({ email }, env.JWT_SECRET, { expiresIn: '8h' });
 
-    resetRateLimit(ip);
+    recordLoginSuccess(ip, email);
 
     const response = NextResponse.json({ success: true });
     response.cookies.set('token', token, {
@@ -88,6 +75,8 @@ export async function POST(req: Request) {
 
     return response;
   } catch (error) {
+    // Server-side failures (DB down, missing JWT_SECRET, ...) are not the
+    // user's fault, so they deliberately do not count towards the lockout.
     console.error('Login failed:', error);
     return Response.json({ error: 'Login failed' }, { status: 500 });
   }

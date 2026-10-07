@@ -11,6 +11,8 @@ const PROTECTED_PATHS = [
   '/api/aaIntroduction',
   '/api/mend',
   '/api/reports',
+  '/api/contact',
+  '/api/menuPages',
   '/api/upload',
   '/api/feedbackQuestions',
   '/api/feedbackTopics',

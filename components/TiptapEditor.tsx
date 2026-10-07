@@ -79,24 +79,28 @@ export default function TiptapEditor({
       {dialog}
       <div className="flex flex-wrap gap-4 border-b pb-2 mb-3">
         <button
+          type="button"
           className="px-2 py-1 border border-gray-300 rounded hover:bg-gray-100 transition text-sm text-gray-700"
           onClick={() => editor.chain().focus().toggleBold().run()}
         >
           <b>B</b>
         </button>
         <button
+          type="button"
           className="px-2 py-1 border border-gray-300 rounded hover:bg-gray-100 transition text-sm text-gray-700"
           onClick={() => editor.chain().focus().toggleItalic().run()}
         >
           <i>I</i>
         </button>
         <button
+          type="button"
           className="px-2 py-1 border border-gray-300 rounded hover:bg-gray-100 transition text-sm text-gray-700"
           onClick={() => editor.chain().focus().toggleUnderline().run()}
         >
           <u>U</u>
         </button>
         <button
+          type="button"
           className="px-2 py-1 border border-gray-300 rounded hover:bg-gray-100 transition text-sm text-gray-700"
           onClick={() => editor.chain().focus().toggleStrike().run()}
         >
@@ -124,12 +128,14 @@ export default function TiptapEditor({
         </select>
 
         <button
+          type="button"
           className="px-2 py-1 border border-gray-300 rounded hover:bg-gray-100 transition text-sm text-gray-700"
           onClick={() => editor.chain().focus().toggleBulletList().run()}
         >
           • List
         </button>
         <button
+          type="button"
           className="px-2 py-1 border border-gray-300 rounded hover:bg-gray-100 transition text-sm text-gray-700"
           onClick={() => editor.chain().focus().toggleOrderedList().run()}
         >
@@ -137,18 +143,21 @@ export default function TiptapEditor({
         </button>
 
         <button
+          type="button"
           className="px-2 py-1 border border-gray-300 rounded hover:bg-gray-100 transition text-sm text-gray-700"
           onClick={() => editor.chain().focus().setTextAlign('left').run()}
         >
           ⬅
         </button>
         <button
+          type="button"
           className="px-2 py-1 border border-gray-300 rounded hover:bg-gray-100 transition text-sm text-gray-700"
           onClick={() => editor.chain().focus().setTextAlign('center').run()}
         >
           ⬆
         </button>
         <button
+          type="button"
           className="px-2 py-1 border border-gray-300 rounded hover:bg-gray-100 transition text-sm text-gray-700"
           onClick={() => editor.chain().focus().setTextAlign('right').run()}
         >
@@ -164,6 +173,7 @@ export default function TiptapEditor({
         />
 
         <button
+          type="button"
           className="px-2 py-1 border border-gray-300 rounded hover:bg-gray-100 transition text-sm text-gray-700"
           onClick={() => editor.chain().focus().toggleHighlight().run()}
         >
@@ -171,6 +181,7 @@ export default function TiptapEditor({
         </button>
 
         <button
+          type="button"
           className="px-2 py-1 border border-gray-300 rounded hover:bg-gray-100 transition text-sm text-gray-700"
           onClick={() => editor.chain().focus().toggleCodeBlock().run()}
         >
@@ -178,6 +189,7 @@ export default function TiptapEditor({
         </button>
 
         <button
+          type="button"
           className="px-2 py-1 border border-gray-300 rounded hover:bg-gray-100 transition text-sm text-gray-700"
           onClick={() => editor.chain().focus().toggleBlockquote().run()}
         >
@@ -185,6 +197,7 @@ export default function TiptapEditor({
         </button>
 
         <button
+          type="button"
           className="px-2 py-1 border border-gray-300 rounded hover:bg-gray-100 transition text-sm text-gray-700"
           onClick={() => {
             const url = prompt('Image URL:');
@@ -205,6 +218,7 @@ export default function TiptapEditor({
         </label>
 
         <button
+          type="button"
           className="px-2 py-1 border border-gray-300 rounded hover:bg-gray-100 transition text-sm text-gray-700"
           onClick={() =>
             editor.chain().focus().clearNodes().unsetAllMarks().run()
@@ -214,12 +228,14 @@ export default function TiptapEditor({
         </button>
 
         <button
+          type="button"
           className="px-2 py-1 border border-gray-300 rounded hover:bg-gray-100 transition text-sm text-gray-700"
           onClick={() => editor.chain().focus().undo().run()}
         >
           ↩ Undo
         </button>
         <button
+          type="button"
           className="px-2 py-1 border border-gray-300 rounded hover:bg-gray-100 transition text-sm text-gray-700"
           onClick={() => editor.chain().focus().redo().run()}
         >

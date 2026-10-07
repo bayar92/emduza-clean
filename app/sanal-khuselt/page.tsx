@@ -4,8 +4,8 @@ import { useState } from 'react';
 import useSWR from 'swr';
 import axios from 'axios';
 import { jsonFetcher } from '@/utils/swr';
-import TopNavBar from '@/components/TopNavBar';
-import FooterNavBar from '@/components/FooterNavBar';
+import TopNavBar from '@/components/TopNavBarClient';
+import FooterNavBar from '@/components/FooterNavBarClient';
 import QuestionField from './QuestionField';
 import {
   FiSend,

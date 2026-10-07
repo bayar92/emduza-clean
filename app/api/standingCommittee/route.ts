@@ -3,6 +3,7 @@ import { revalidatePath } from 'next/cache';
 import { prisma } from '@/utils/prisma';
 import { writeFile, mkdir } from 'fs/promises';
 import path from 'path';
+import { getUploadDir } from '@/utils/uploadDir';
 
 function invalidate() {
   revalidatePath('/erkhzui');
@@ -37,8 +38,7 @@ async function saveCommitteeFile(file: File): Promise<string | { error: string }
 
   const bytes = await file.arrayBuffer();
   const safeName = sanitizeFilename(file.name);
-  const uploadDir = process.env.UPLOAD_DIR || path.join(process.cwd(), 'uploads');
-  const targetDir = path.join(uploadDir, 'file');
+  const targetDir = path.join(getUploadDir(), 'file');
   await mkdir(targetDir, { recursive: true });
   await writeFile(path.join(targetDir, safeName), Buffer.from(bytes));
 

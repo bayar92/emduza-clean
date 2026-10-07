@@ -1,13 +1,14 @@
 import { writeFile, mkdir } from "fs/promises";
 import path from "path";
+import { getUploadDir } from "./uploadDir";
 
 /**
  * Saves an uploaded file outside of public/ and returns a URL path (/uploads/...).
  * All /uploads/... requests are handled by app/uploads/[...slug]/route.ts,
  * which bypasses nginx static file serving — fixing 404s in Docker/production.
  *
- * Set UPLOAD_DIR env variable to a persistent volume path in production.
- * Example: UPLOAD_DIR=/var/app/uploads
+ * In production the target directory MUST be on a persistent volume — see
+ * getUploadDir() in ./uploadDir for how it is resolved.
  */
 export async function saveUploadedFile(
   file: File,
@@ -21,9 +22,7 @@ export async function saveUploadedFile(
   const safeFileName = file.name.replace(/[^a-zA-Z0-9._-]/g, "-");
   const fileName = `${prefix}-${Date.now()}-${safeFileName}`;
 
-  const uploadDir =
-    process.env.UPLOAD_DIR || path.join(process.cwd(), "uploads");
-  const targetDir = path.join(uploadDir, subDir);
+  const targetDir = path.join(getUploadDir(), subDir);
   await mkdir(targetDir, { recursive: true });
 
   await writeFile(path.join(targetDir, fileName), buffer);

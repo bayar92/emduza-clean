@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { readFile } from 'fs/promises';
 import path from 'path';
+import { getUploadDir } from '@/utils/uploadDir';
 
 export const dynamic = 'force-dynamic';
 
@@ -64,10 +65,7 @@ export async function GET(
     const ext = lastSeg.split('.').pop()?.toLowerCase() ?? '';
     const contentType = MIME_TYPES[ext] ?? 'application/octet-stream';
 
-    const uploadDir =
-      process.env.UPLOAD_DIR || path.join(process.cwd(), 'uploads');
-
-    const newPath = safeResolve(uploadDir, ...routeSlug);
+    const newPath = safeResolve(getUploadDir(), ...routeSlug);
     const legacyPath = safeResolve(
       path.join(process.cwd(), 'public', 'uploads'),
       ...routeSlug

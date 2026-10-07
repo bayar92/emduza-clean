@@ -3,10 +3,7 @@ import { NextResponse } from 'next/server';
 import { revalidatePath } from 'next/cache';
 import { writeFile, mkdir, unlink } from 'fs/promises';
 import path from 'path';
-
-function getUploadDir() {
-  return process.env.UPLOAD_DIR || path.join(process.cwd(), 'uploads');
-}
+import { getUploadDir } from '@/utils/uploadDir';
 
 function invalidate(type?: string) {
   if (type === 'financial' || !type) revalidatePath('/taillan/sankhuu');

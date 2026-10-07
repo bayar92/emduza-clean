@@ -6,6 +6,7 @@ import path from 'path';
 import { v4 as uuidv4 } from 'uuid';
 import { validateImageAsync } from '@/utils/fileValidation';
 import { saveUploadedFile } from '@/utils/uploadFile';
+import { getUploadDir } from '@/utils/uploadDir';
 import { sanitizeHtml } from '@/utils/sanitize';
 
 async function saveFile(file: File, folder: string) {
@@ -150,9 +151,8 @@ export async function PUT(req: Request) {
       );
 
       for (const imgPath of deleteImages) {
-        const uploadDir = process.env.UPLOAD_DIR || path.join(process.cwd(), 'uploads');
         const rel = imgPath.replace(/^\/uploads\//, '');
-        await unlink(path.join(uploadDir, rel)).catch(() => {});
+        await unlink(path.join(getUploadDir(), rel)).catch(() => {});
       }
     }
 

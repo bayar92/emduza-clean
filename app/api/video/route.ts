@@ -6,6 +6,7 @@ import path from 'path';
 import { v4 as uuidv4 } from 'uuid';
 import { validateVideoAsync } from '@/utils/fileValidation';
 import { saveUploadedFile } from '@/utils/uploadFile';
+import { getUploadDir } from '@/utils/uploadDir';
 
 function invalidateVideos() {
   revalidatePath('/');
@@ -91,8 +92,7 @@ export async function DELETE(req: Request) {
     if (existing.videoPath) {
       // videoPath is like /uploads/video/filename or /video/filename
       const rel = existing.videoPath.replace(/^\/uploads\//, '').replace(/^\//, '');
-      const uploadDir = process.env.UPLOAD_DIR || path.join(process.cwd(), 'uploads');
-      const filePath = path.join(uploadDir, rel);
+      const filePath = path.join(getUploadDir(), rel);
       if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
     }
 

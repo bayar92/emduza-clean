@@ -26,9 +26,12 @@ import {
 const STANDALONE_LINKS = [{ href: '/sanal-khuselt', label: 'Санал хүсэлт' }];
 
 /* ─── Nav structure ─────────────────────────────────────── */
-// Keep the group ids in sync with BUILTIN_MENUS in utils/menuPages.ts — they
-// are the choices offered when an admin places a custom page in the menu.
+// Keep the group ids (and the child ids below) in sync with BUILTIN_MENUS and
+// BUILTIN_ITEMS in utils/menuPages.ts — they are the placements offered when
+// an admin adds an entry to the menu. A unit test enforces this.
 type NavChild = {
+  /** Set on built-in links that admins may hang entries from (BUILTIN_ITEMS). */
+  id?: string;
   label: string;
   /** Absent on a sub-menu (group), which only holds `children`. */
   href?: string;
@@ -45,30 +48,34 @@ type NavGroup = {
   children: NavChild[];
 };
 
-const navItems: NavGroup[] = [
+export const navItems: NavGroup[] = [
   {
     id: 'about',
     label: 'Бидний тухай',
     children: [
       {
+        id: 'about.taniltsuulga',
         label: 'ЭМДҮЗ танилцуулга',
         href: '/taniltsuulga',
         icon: FiInfo,
         desc: 'Байгууллагын тухай',
       },
       {
+        id: 'about.mendchilgee',
         label: 'Даргын мэндчилгээ',
         href: '/mendchilgee',
         icon: FiMessageSquare,
         desc: 'Удирдлагаас мэндчилгээ',
       },
       {
+        id: 'about.gishuud',
         label: 'ЭМДҮЗ-ийн гишүүд',
         href: '/gishuud',
         icon: FiUsers,
         desc: 'Зөвлөлийн бүрэлдэхүүн',
       },
       {
+        id: 'about.alba',
         label: 'Ажлын алба',
         href: '/ajliin-alba-taniltsuulga',
         icon: FiInfo,
@@ -81,18 +88,21 @@ const navItems: NavGroup[] = [
     label: 'Мэдээ мэдээлэл',
     children: [
       {
+        id: 'news.huraldaan',
         label: 'Хуралдааны тойм',
         href: '/medee/huraldaanii-toim',
         icon: FiFileText,
         desc: 'ЭМДҮЗ-ийн хуралдаан',
       },
       {
+        id: 'news.tekhnik',
         label: 'Техникийн хороо',
         href: '/medee/technikiin-khoroo',
         icon: FiFileText,
         desc: 'Техникийн хорооны мэдээлэл',
       },
       {
+        id: 'news.hynalt',
         label: 'Хяналт, үнэлгээ',
         href: '/medee/hynalt-unelgee',
         icon: FiBarChart2,
@@ -105,18 +115,21 @@ const navItems: NavGroup[] = [
     label: 'Эрх зүй',
     children: [
       {
+        id: 'law.shiidwer',
         label: 'УИХ, Байнгын хорооны шийдвэр',
         href: '/erkhzui/shiidwer',
         icon: FiFileText,
         desc: 'Улсын их хурлын шийдвэр',
       },
       {
+        id: 'law.togtool',
         label: 'Засгийн газрын тогтоол',
         href: '/erkhzui/togtool',
         icon: FiFileText,
         desc: 'ЗГ-ын тогтоол',
       },
       {
+        id: 'law.emduz-togtool',
         label: 'ЭМДҮЗ-ийн тогтоолууд',
         href: '/erkhzui/emduz-togtool',
         icon: FiFileText,
@@ -129,12 +142,14 @@ const navItems: NavGroup[] = [
     label: 'Тайлан',
     children: [
       {
+        id: 'report.sankhuu',
         label: 'ЭМД-ын сангийн санхүүгийн тайлан',
         href: '/taillan/sankhuu',
         icon: FiBarChart2,
         desc: 'Санхүүгийн жилийн тайлан',
       },
       {
+        id: 'report.uil-ajillagaa',
         label: 'ЭМДҮЗ-ийн үйл ажиллагааны тайлан',
         href: '/taillan/uil-ajillagaa',
         icon: FiBarChart2,
@@ -180,16 +195,15 @@ const nodeToChild = (n: MenuNode): NavChild =>
 
 /** Is the current page this entry, or anything inside it? */
 const isChildActive = (c: NavChild, pathname: string): boolean =>
-  c.children
-    ? c.children.some((x) => isChildActive(x, pathname))
-    : !!c.href && pathname === c.href;
+  (!!c.href && pathname === c.href) ||
+  !!c.children?.some((x) => isChildActive(x, pathname));
 
 /** Looser match used for the top-level highlight (prefix, as before). */
 const isGroupActive = (children: NavChild[], pathname: string): boolean =>
-  children.some((c) =>
-    c.children
-      ? isGroupActive(c.children, pathname)
-      : !!c.href && c.href !== '#' && pathname.startsWith(c.href)
+  children.some(
+    (c) =>
+      (!!c.href && c.href !== '#' && pathname.startsWith(c.href)) ||
+      (c.children ? isGroupActive(c.children, pathname) : false)
   );
 
 const linkProps = (child: NavChild) =>
@@ -218,7 +232,16 @@ const TopNavView = ({
     const { topLevel, byBuiltin } = buildMenuTree(customPages);
     const builtIn: NavGroup[] = navItems.map((g) => ({
       ...g,
-      children: [...g.children, ...(byBuiltin[g.id] ?? []).map(nodeToChild)],
+      children: [
+        // A built-in link that has entries hung from it keeps its own page and
+        // gains a flyout / nested list of those entries.
+        ...g.children.map((c) =>
+          c.id && byBuiltin[c.id]?.length
+            ? { ...c, children: byBuiltin[c.id].map(nodeToChild) }
+            : c
+        ),
+        ...(byBuiltin[g.id] ?? []).map(nodeToChild),
+      ],
     }));
     const customGroups: NavGroup[] = topLevel
       .filter((n) => n.kind === 'group')
@@ -463,17 +486,36 @@ const DesktopChild = ({
         onMouseEnter={enter}
         onMouseLeave={() => setOpen(false)}
       >
-        <div
-          className={`group flex items-center gap-3 px-3 py-2.5 rounded-xl cursor-default transition-colors ${
+        {(() => {
+          const rowCls = `group flex items-center gap-3 px-3 py-2.5 rounded-xl transition-colors ${
             open || active ? 'bg-brand-50 text-brand-700' : 'text-slate-700 hover:bg-slate-50'
-          }`}
-        >
-          {iconBox}
-          <div className="min-w-0 flex-1 text-[13px] font-semibold leading-tight truncate">
-            {child.label}
-          </div>
-          <FiChevronRight size={14} className="text-slate-400 flex-shrink-0" />
-        </div>
+          }`;
+          const inner = (
+            <>
+              {iconBox}
+              <div className="min-w-0 flex-1">
+                <div className="text-[13px] font-semibold leading-tight truncate">
+                  {child.label}
+                </div>
+                {child.desc && (
+                  <div className="text-[11px] text-slate-400 mt-0.5 truncate">
+                    {child.desc}
+                  </div>
+                )}
+              </div>
+              <FiChevronRight size={14} className="text-slate-400 flex-shrink-0" />
+            </>
+          );
+          // A built-in link with entries inside stays clickable; a pure
+          // sub-menu (group) has no page, so it only opens its flyout.
+          return child.href ? (
+            <Link href={child.href} className={rowCls}>
+              {inner}
+            </Link>
+          ) : (
+            <div className={`${rowCls} cursor-default`}>{inner}</div>
+          );
+        })()}
 
         {open && (
           // The padding on the near side bridges the gap so the pointer can
@@ -597,27 +639,51 @@ const MobileSubGroup = ({
   const Icon = child.icon;
   const active = isChildActive(child, pathname);
 
+  const rowCls = `flex items-center gap-3 px-3 py-2.5 rounded-xl text-[13px] font-medium transition-colors ${
+    active ? 'bg-brand-50 text-brand-700' : 'text-slate-600 hover:bg-slate-50'
+  }`;
+  const iconBox = (
+    <div
+      className={`w-7 h-7 flex-shrink-0 flex items-center justify-center rounded-lg ${
+        active ? 'bg-brand-100 text-brand-600' : 'bg-slate-100 text-slate-500'
+      }`}
+    >
+      <Icon size={13} />
+    </div>
+  );
+  const chevron = (
+    <RiArrowDropDownLine
+      size={20}
+      className={`transition-transform duration-200 ${open ? 'rotate-180 text-brand-600' : 'text-slate-400'}`}
+    />
+  );
+
   return (
     <div>
-      <button
-        onClick={() => setOpen(!open)}
-        className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-[13px] font-medium transition-colors ${
-          active ? 'bg-brand-50 text-brand-700' : 'text-slate-600 hover:bg-slate-50'
-        }`}
-      >
-        <div
-          className={`w-7 h-7 flex-shrink-0 flex items-center justify-center rounded-lg ${
-            active ? 'bg-brand-100 text-brand-600' : 'bg-slate-100 text-slate-500'
-          }`}
-        >
-          <Icon size={13} />
+      {child.href ? (
+        // Built-in link with entries inside: the label opens its page, the
+        // arrow expands the list.
+        <div className="flex items-stretch gap-1">
+          <Link href={child.href} className={`${rowCls} flex-1 min-w-0`}>
+            {iconBox}
+            <span className="flex-1 text-left">{child.label}</span>
+          </Link>
+          <button
+            onClick={() => setOpen(!open)}
+            aria-label="Дэд цэсийг нээх"
+            aria-expanded={open}
+            className={`px-2 rounded-xl ${active ? 'bg-brand-50' : 'hover:bg-slate-50'}`}
+          >
+            {chevron}
+          </button>
         </div>
-        <span className="flex-1 text-left">{child.label}</span>
-        <RiArrowDropDownLine
-          size={20}
-          className={`transition-transform duration-200 ${open ? 'rotate-180 text-brand-600' : 'text-slate-400'}`}
-        />
-      </button>
+      ) : (
+        <button onClick={() => setOpen(!open)} className={`w-full ${rowCls}`}>
+          {iconBox}
+          <span className="flex-1 text-left">{child.label}</span>
+          {chevron}
+        </button>
+      )}
       {open && child.children && (
         <MobileChildren items={child.children} pathname={pathname} depth={depth + 1} />
       )}

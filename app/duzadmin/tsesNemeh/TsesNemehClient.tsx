@@ -14,12 +14,13 @@ import MenuPlacementPreview from './MenuPlacementPreview';
 import { jsonFetcher } from '@/utils/swr';
 import { ALLOWED_ATTR, ALLOWED_TAGS } from '@/utils/htmlAllowlist';
 import {
-  BUILTIN_MENUS,
+  MAX_MENU_DEPTH,
   MENU_LIMITS,
   ancestorInfo,
   buildPlacementOptions,
   decodePlacement,
   encodePlacement,
+  isBuiltinParent,
   pageHref,
   slugify,
   type AdminMenuRow,
@@ -110,7 +111,7 @@ const TsesNemehForm = () => {
       placement:
         presetParentId && /^\d+$/.test(presetParentId)
           ? `c:${presetParentId}`
-          : presetParent && BUILTIN_MENUS.some((m) => m.id === presetParent)
+          : presetParent && isBuiltinParent(presetParent)
             ? `b:${presetParent}`
             : '',
       content: '',
@@ -409,7 +410,8 @@ const TsesNemehForm = () => {
                     )}
                   </select>
                   <p className={hintCls}>
-                    Цэс хамгийн ихдээ 3 түвшинтэй: цэс → дэд цэс → хуудас.
+                    Цэс хамгийн ихдээ {MAX_MENU_DEPTH} түвшинтэй. Бэлэн цэсний
+                    зүйл (жишээ нь «Бидний тухай › Ажлын алба») дотор ч нэмж болно.
                   </p>
                 </div>
 

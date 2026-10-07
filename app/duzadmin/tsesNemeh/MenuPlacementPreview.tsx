@@ -1,5 +1,5 @@
 import React from 'react';
-import { BUILTIN_MENUS, type MenuKind } from '@/utils/menuPages';
+import { BUILTIN_MENUS, resolveBuiltinParent, type MenuKind } from '@/utils/menuPages';
 import { FiChevronDown, FiChevronRight } from 'react-icons/fi';
 
 /**
@@ -16,22 +16,25 @@ export default function MenuPlacementPreview({
 }: {
   title: string;
   kind: MenuKind;
-  /** Built-in dropdown the entry sits directly in ('' otherwise). */
+  /** Built-in dropdown or built-in link the entry sits directly in ('' otherwise). */
   parent: string;
   /** Groups leading to the entry, root first (empty when not inside a group). */
   chain: { id: number; title: string }[];
-  /** Built-in dropdown at the root of `chain` ('' when the root is a custom top-level group). */
+  /** Built-in dropdown/link at the root of `chain` ('' when the root is a custom top-level group). */
   rootBuiltin: string;
 }) {
   const label = title.trim() || (kind === 'group' ? 'Шинэ цэс' : 'Шинэ хуудас');
   const isGroup = kind === 'group';
 
   const rootKey = chain.length ? rootBuiltin : parent;
+  // A key is either a built-in dropdown ("about") or a link inside one ("about.alba").
+  const builtin = rootKey ? resolveBuiltinParent(rootKey) : null;
   // The new entry is itself a pill in the bar only when it has no parent at all.
   const newIsPill = !rootKey && chain.length === 0;
   const customRoot = !rootKey && chain.length > 0 ? chain[0].title : null;
   // Labels shown one per dropdown level, ending with the new entry.
   const levels = [
+    ...(builtin?.itemLabel ? [builtin.itemLabel] : []),
     ...(rootKey ? chain.map((c) => c.title) : chain.slice(1).map((c) => c.title)),
     label,
   ];
@@ -51,7 +54,7 @@ export default function MenuPlacementPreview({
         {BUILTIN_MENUS.map((m) => (
           <span
             key={m.id}
-            className={`${pill} inline-flex items-center gap-0.5 ${m.id === rootKey ? soft : idle}`}
+            className={`${pill} inline-flex items-center gap-0.5 ${m.id === builtin?.menuId ? soft : idle}`}
           >
             {m.label}
             <FiChevronDown size={13} />

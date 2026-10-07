@@ -44,8 +44,8 @@ const row = (id: number, kind: "page" | "group", parent = "", parentId: number |
   parent,
   parentId,
 });
-// 1 = top-level group, 2 = sub-group of 1 (depth 2), 5 = a page
-const ROWS: Row[] = [row(1, "group"), row(2, "group", "", 1), row(5, "page")];
+// 1 = top-level group, 2 = sub-group of 1 (depth 2), 6 = group in 2 (depth 3), 5 = a page
+const ROWS: Row[] = [row(1, "group"), row(2, "group", "", 1), row(6, "group", "", 2), row(5, "page")];
 
 const json = (method: string, body?: unknown, url = "http://localhost/api/menuPages") =>
   new Request(url, {
@@ -140,11 +140,29 @@ describe("POST /api/menuPages", () => {
     expect(mockPrisma.menuPage.create.mock.calls[1][0].data.parentId).toBe(2);
   });
 
-  it("refuses to nest deeper than 3 levels", async () => {
-    const res = await POST(json("POST", { ...GROUP, parentId: 2 }));
+  it("creates entries inside a built-in link such as «Ажлын алба»", async () => {
+    mockPrisma.menuPage.create.mockImplementation(async ({ data }) => ({ id: 10, ...data }));
+    const res = await POST(json("POST", { ...PAGE, parent: "about.alba" }));
+    expect(res.status).toBe(201);
+    expect(mockPrisma.menuPage.create.mock.calls[0][0].data.parent).toBe("about.alba");
+    // a sub-menu there, too
+    expect((await POST(json("POST", { ...GROUP, parent: "about.alba" }))).status).toBe(201);
+  });
+
+  it("rejects an unknown built-in link", async () => {
+    expect((await POST(json("POST", { ...PAGE, parent: "about.nope" }))).status).toBe(400);
+    expect(mockPrisma.menuPage.create).not.toHaveBeenCalled();
+  });
+
+  it("allows 4 levels but no more", async () => {
+    mockPrisma.menuPage.create.mockImplementation(async ({ data }) => ({ id: 11, ...data }));
+    // a page inside the depth-3 group 6 is the deepest allowed (level 4)
+    expect((await POST(json("POST", { ...PAGE, parent: "", parentId: 6 }))).status).toBe(201);
+    // ...but a group there would leave no room for anything inside it
+    const res = await POST(json("POST", { ...GROUP, parentId: 6 }));
     expect(res.status).toBe(400);
     expect((await res.json()).error).toMatch(/түвшин/);
-    expect(mockPrisma.menuPage.create).not.toHaveBeenCalled();
+    expect(mockPrisma.menuPage.create).toHaveBeenCalledTimes(1);
   });
 
   it("refuses to put an entry inside a page or a group that does not exist", async () => {
@@ -226,11 +244,13 @@ describe("/api/menuPages/[id]", () => {
       expect(mockPrisma.menuPage.update).not.toHaveBeenCalled();
     });
 
-    it("does not allow moves that push a branch past 3 levels", async () => {
-      // group 1 already has a sub-group below it; a built-in dropdown is one level down
-      mockPrisma.menuPage.findMany.mockResolvedValue([...ROWS, row(3, "page", "", 2)]);
-      const res = await PUT(json("PUT", { ...GROUP, parent: "about" }), ctx("1"));
+    it("does not allow moves that push a branch past the depth limit", async () => {
+      // group 1 carries two levels below it (2 -> 6); inside the built-in link
+      // «Ажлын алба» it would start at level 3 and end at level 5
+      const res = await PUT(json("PUT", { ...GROUP, parent: "about.alba" }), ctx("1"));
       expect(res.status).toBe(400);
+      expect((await res.json()).error).toMatch(/түвшин/);
+      expect(mockPrisma.menuPage.update).not.toHaveBeenCalled();
     });
 
     it("maps unique-slug and missing-row database errors", async () => {

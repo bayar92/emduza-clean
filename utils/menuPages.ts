@@ -3,12 +3,14 @@
  * shared by the public nav, the admin screens and the API validation.
  *
  * An entry is either a "page" (has content, lives at /khuudas/<slug>) or a
- * "group" (a dropdown that holds other entries). Entries nest, up to
- * MAX_MENU_DEPTH levels counting the built-in dropdowns as level 1:
+ * "group" (a dropdown that holds other entries). Entries nest up to
+ * MAX_MENU_DEPTH levels. The built-in dropdowns and the built-in links inside
+ * them count too, so an entry can be placed:
  *
- *   level 1  top-level entry in the nav bar        | built-in dropdown
- *   level 2  entry inside a built-in dropdown       | sub-menu of a level-1 group
- *   level 3  entry inside a level-2 group (pages only)
+ *   level 1  top-level entry in the nav bar        | a built-in dropdown
+ *   level 2  inside a built-in dropdown            | a built-in link (e.g. "Ажлын алба")
+ *   level 3  inside a built-in link, or a sub-menu of a level-1/2 group
+ *   level 4  the deepest level (pages only)
  */
 
 export type MenuKind = 'page' | 'group';
@@ -46,7 +48,52 @@ export const BUILTIN_MENUS = [
   { id: 'dans', label: 'Шилэн данс' },
 ] as const;
 
-export const MAX_MENU_DEPTH = 3;
+/**
+ * The links inside the built-in dropdowns that an admin can hang entries from
+ * (the external "Шилэн данс" links are excluded). `id` is "<menu>.<name>".
+ * Keep ids, labels and hrefs in sync with `navItems` in
+ * components/TopNavView.tsx (a unit test enforces this).
+ */
+export const BUILTIN_ITEMS = [
+  { id: 'about.taniltsuulga', menu: 'about', label: 'ЭМДҮЗ танилцуулга', href: '/taniltsuulga' },
+  { id: 'about.mendchilgee', menu: 'about', label: 'Даргын мэндчилгээ', href: '/mendchilgee' },
+  { id: 'about.gishuud', menu: 'about', label: 'ЭМДҮЗ-ийн гишүүд', href: '/gishuud' },
+  { id: 'about.alba', menu: 'about', label: 'Ажлын алба', href: '/ajliin-alba-taniltsuulga' },
+  { id: 'news.huraldaan', menu: 'news', label: 'Хуралдааны тойм', href: '/medee/huraldaanii-toim' },
+  { id: 'news.tekhnik', menu: 'news', label: 'Техникийн хороо', href: '/medee/technikiin-khoroo' },
+  { id: 'news.hynalt', menu: 'news', label: 'Хяналт, үнэлгээ', href: '/medee/hynalt-unelgee' },
+  { id: 'law.shiidwer', menu: 'law', label: 'УИХ, Байнгын хорооны шийдвэр', href: '/erkhzui/shiidwer' },
+  { id: 'law.togtool', menu: 'law', label: 'Засгийн газрын тогтоол', href: '/erkhzui/togtool' },
+  { id: 'law.emduz-togtool', menu: 'law', label: 'ЭМДҮЗ-ийн тогтоолууд', href: '/erkhzui/emduz-togtool' },
+  { id: 'report.sankhuu', menu: 'report', label: 'ЭМД-ын сангийн санхүүгийн тайлан', href: '/taillan/sankhuu' },
+  { id: 'report.uil-ajillagaa', menu: 'report', label: 'ЭМДҮЗ-ийн үйл ажиллагааны тайлан', href: '/taillan/uil-ajillagaa' },
+] as const;
+
+export type BuiltinParent = {
+  /** The built-in dropdown this key belongs to. */
+  menuId: string;
+  menuLabel: string;
+  /** Set when the key is a link inside the dropdown (e.g. "Ажлын алба"). */
+  itemLabel?: string;
+  /** Level an entry placed directly inside it ends up at. */
+  childDepth: number;
+};
+
+/** Resolves a `parent` value: a built-in dropdown id or a built-in item id. */
+export function resolveBuiltinParent(key: string): BuiltinParent | null {
+  const menu = BUILTIN_MENUS.find((m) => m.id === key);
+  if (menu) return { menuId: menu.id, menuLabel: menu.label, childDepth: 2 };
+  const item = BUILTIN_ITEMS.find((i) => i.id === key);
+  if (item) {
+    const m = BUILTIN_MENUS.find((x) => x.id === item.menu)!;
+    return { menuId: m.id, menuLabel: m.label, itemLabel: item.label, childDepth: 3 };
+  }
+  return null;
+}
+
+export const isBuiltinParent = (key: string) => resolveBuiltinParent(key) !== null;
+
+export const MAX_MENU_DEPTH = 4;
 
 export const MENU_LIMITS = {
   title: 100,
@@ -80,7 +127,9 @@ export function slugify(title: string): string {
 }
 
 export function parentLabel(parent: string): string {
-  return BUILTIN_MENUS.find((m) => m.id === parent)?.label ?? 'Үндсэн цэс';
+  const r = resolveBuiltinParent(parent);
+  if (!r) return 'Үндсэн цэс';
+  return r.itemLabel ? `${r.menuLabel} › ${r.itemLabel}` : r.menuLabel;
 }
 
 /* ─── Validating one entry's own fields ──────────────────────────────────── */
@@ -121,7 +170,7 @@ export function validateMenuPageInput(input: unknown): MenuPageValidation {
     return { ok: false, error: `Цэсний нэр хэт урт байна (дээд тал нь ${MENU_LIMITS.title} тэмдэгт).` };
   }
 
-  if (parent !== '' && !BUILTIN_MENUS.some((m) => m.id === parent)) {
+  if (parent !== '' && !isBuiltinParent(parent)) {
     return { ok: false, error: 'Цэсний байршил буруу байна.' };
   }
 
@@ -183,7 +232,10 @@ export type TreeRow = {
 const byIdMap = <T extends { id: number }>(rows: T[]) =>
   new Map(rows.map((r) => [r.id, r] as const));
 
-/** Level of an entry: 1 = top-level, 2 = inside a built-in dropdown / sub-menu... */
+/** Level of an entry with no group above it: 1 top-level, 2 in a built-in dropdown, 3 in a built-in link. */
+const baseDepth = (parent: string) => (parent ? resolveBuiltinParent(parent)?.childDepth ?? 1 : 1);
+
+/** Level of an entry: 1 = top-level, deeper for every dropdown / sub-menu above it. */
 export function depthOf(rows: TreeRow[], id: number): number {
   const byId = byIdMap(rows);
   let depth = 0;
@@ -192,7 +244,7 @@ export function depthOf(rows: TreeRow[], id: number): number {
   while (cur) {
     if (seen.has(cur.id)) return Number.MAX_SAFE_INTEGER; // corrupt data: a cycle
     seen.add(cur.id);
-    if (cur.parentId === null) return depth + (cur.parent ? 2 : 1);
+    if (cur.parentId === null) return depth + baseDepth(cur.parent);
     depth += 1;
     cur = byId.get(cur.parentId);
   }
@@ -251,7 +303,7 @@ export function validatePlacement(rows: TreeRow[], p: Placement): string | null 
     }
     depth = depthOf(rows, par.id) + 1;
   } else {
-    depth = p.parent ? 2 : 1;
+    depth = baseDepth(p.parent);
   }
 
   const below = p.id !== undefined ? descendantDepth(rows, p.id) : 0;
@@ -280,7 +332,8 @@ const bySortThenId = (a: { sortOrder: number; id: number }, b: { sortOrder: numb
 
 /**
  * Turns the flat list of published entries into the tree the nav renders:
- * entries inside a built-in dropdown, and the top-level entries. Siblings are
+ * entries inside a built-in dropdown or built-in link (keyed by that dropdown /
+ * item id), and the top-level entries. Siblings are
  * ordered by sortOrder then id. Groups with nothing visible inside are dropped,
  * and so is anything whose group is missing (e.g. an unpublished group hides
  * its whole branch).
@@ -316,7 +369,7 @@ export function buildMenuTree(pages: CustomMenuPage[]): {
   for (const root of roots) {
     const node = toNode(root);
     if (!node) continue;
-    if (BUILTIN_MENUS.some((m) => m.id === root.parent)) {
+    if (isBuiltinParent(root.parent)) {
       (byBuiltin[root.parent] ??= []).push(node);
     } else {
       topLevel.push(node);
@@ -378,7 +431,14 @@ export function buildPlacementOptions(
       value: '',
       label: opts.kind === 'group' ? 'Үндсэн цэс (шинэ dropdown цэс)' : 'Үндсэн цэс (шууд холбоос)',
     },
-    ...BUILTIN_MENUS.map((m) => ({ value: `b:${m.id}`, label: `«${m.label}» цэсний дотор` })),
+    // Each built-in dropdown, followed by the built-in links inside it.
+    ...BUILTIN_MENUS.flatMap((m) => [
+      { value: `b:${m.id}`, label: `«${m.label}» цэсний дотор` },
+      ...BUILTIN_ITEMS.filter((i) => i.menu === m.id).map((i) => ({
+        value: `b:${i.id}`,
+        label: `«${m.label} › ${i.label}» цэсний дотор`,
+      })),
+    ]).filter((o) => (resolveBuiltinParent(o.value.slice(2))?.childDepth ?? 1) <= roomDepth),
   ];
 
   const excluded = new Set<number>();
@@ -430,12 +490,18 @@ export function buildAdminSections(rows: AdminMenuRow[]): AdminSection[] {
     children: (kids.get(r.id) ?? []).map(toNode),
   });
 
-  const known = new Set<string>(BUILTIN_MENUS.map((m) => m.id));
-  const sectionOf = (r: AdminMenuRow) => (known.has(r.parent) ? r.parent : '');
+  const sectionOf = (r: AdminMenuRow) => (isBuiltinParent(r.parent) ? r.parent : '');
 
   const sections: AdminSection[] = [
     { key: '', label: 'Үндсэн цэс', nodes: [] },
-    ...BUILTIN_MENUS.map((m) => ({ key: m.id as string, label: `«${m.label}» цэсний дотор`, nodes: [] as AdminNode[] })),
+    ...BUILTIN_MENUS.flatMap((m) => [
+      { key: m.id as string, label: `«${m.label}» цэсний дотор`, nodes: [] as AdminNode[] },
+      ...BUILTIN_ITEMS.filter((i) => i.menu === m.id).map((i) => ({
+        key: i.id as string,
+        label: `«${m.label} › ${i.label}» цэсний дотор`,
+        nodes: [] as AdminNode[],
+      })),
+    ]),
   ];
   for (const r of roots) sections.find((s) => s.key === sectionOf(r))!.nodes.push(toNode(r));
   return sections.filter((s) => s.nodes.length > 0);

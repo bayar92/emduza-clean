@@ -9,7 +9,7 @@ export default function DuzAdminLayout({
   return (
     <div className="flex min-h-screen bg-gray-100">
       <AdminNavBar />
-      <div className="flex-1 ml-64">
+      <div className="flex-1 ml-72">
         <AdminLoadingProvider>{children}</AdminLoadingProvider>
       </div>
     </div>

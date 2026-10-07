@@ -16,8 +16,14 @@ import { ALLOWED_ATTR, ALLOWED_TAGS } from '@/utils/htmlAllowlist';
 import {
   BUILTIN_MENUS,
   MENU_LIMITS,
+  ancestorInfo,
+  buildPlacementOptions,
+  decodePlacement,
+  encodePlacement,
   pageHref,
   slugify,
+  type AdminMenuRow,
+  type MenuKind,
 } from '@/utils/menuPages';
 import {
   FiArrowLeft,
@@ -26,6 +32,8 @@ import {
   FiEye,
   FiEdit3,
   FiExternalLink,
+  FiFileText,
+  FiFolder,
 } from 'react-icons/fi';
 
 const TiptapEditor = dynamic(() => import('@/components/TiptapEditor'), {
@@ -35,29 +43,24 @@ const TiptapEditor = dynamic(() => import('@/components/TiptapEditor'), {
 type PageRecord = {
   id: number;
   title: string;
-  slug: string;
+  kind: MenuKind;
+  slug: string | null;
   parent: string;
+  parentId: number | null;
   content: string;
   sortOrder: number;
   published: boolean;
 };
 
 type FormState = {
+  kind: MenuKind;
   title: string;
   slug: string;
-  parent: string;
+  /** Placement <select> value: "" | "b:<builtin>" | "c:<groupId>". */
+  placement: string;
   content: string;
   sortOrder: string;
   published: boolean;
-};
-
-const EMPTY: FormState = {
-  title: '',
-  slug: '',
-  parent: '',
-  content: '',
-  sortOrder: '0',
-  published: true,
 };
 
 const inputCls =
@@ -65,9 +68,25 @@ const inputCls =
 const labelCls = 'block text-[13px] font-semibold text-slate-700 mb-1.5';
 const hintCls = 'text-[12px] text-slate-400 mt-1.5';
 
-const TsesNemeh = () => {
+const KIND_CARDS = [
+  {
+    kind: 'page' as const,
+    icon: FiFileText,
+    title: 'Хуудас',
+    desc: 'Өөрийн агуулга, хаягтай. Дарахад хуудас нээгдэнэ.',
+  },
+  {
+    kind: 'group' as const,
+    icon: FiFolder,
+    title: 'Цэс (дэд цэстэй)',
+    desc: 'Dropdown. Дотор нь дэд цэс эсвэл хуудас нэмнэ.',
+  },
+];
+
+const TsesNemehForm = () => {
   const router = useRouter();
-  const idParam = useSearchParams().get('id');
+  const params = useSearchParams();
+  const idParam = params.get('id');
   const isEdit = !!idParam;
 
   const { data: loaded, error: loadError } = useSWR<PageRecord>(
@@ -75,8 +94,30 @@ const TsesNemeh = () => {
     jsonFetcher,
     { revalidateOnFocus: false }
   );
+  const { data: allData } = useSWR<AdminMenuRow[]>('/api/menuPages?all=1', jsonFetcher, {
+    revalidateOnFocus: false,
+  });
+  const allRows = useMemo(() => (Array.isArray(allData) ? allData : []), [allData]);
 
-  const [form, setForm] = useState<FormState>(EMPTY);
+  // "Дэд цэс нэмэх" links arrive as ?parentId=<group>, "Энд нэмэх" as ?parent=<builtin>.
+  const [form, setForm] = useState<FormState>(() => {
+    const presetParentId = params.get('parentId');
+    const presetParent = params.get('parent');
+    return {
+      kind: params.get('kind') === 'group' ? 'group' : 'page',
+      title: '',
+      slug: '',
+      placement:
+        presetParentId && /^\d+$/.test(presetParentId)
+          ? `c:${presetParentId}`
+          : presetParent && BUILTIN_MENUS.some((m) => m.id === presetParent)
+            ? `b:${presetParent}`
+            : '',
+      content: '',
+      sortOrder: '0',
+      published: true,
+    };
+  });
   // Until the admin edits the slug by hand it follows the title.
   const [slugTouched, setSlugTouched] = useState(false);
   const [seededId, setSeededId] = useState<number | null>(null);
@@ -89,14 +130,27 @@ const TsesNemeh = () => {
     setSeededId(loaded.id);
     setSlugTouched(true);
     setForm({
+      kind: loaded.kind,
       title: loaded.title,
-      slug: loaded.slug,
-      parent: loaded.parent,
+      slug: loaded.slug ?? '',
+      placement: encodePlacement(loaded.parent, loaded.parentId),
       content: loaded.content,
       sortOrder: String(loaded.sortOrder),
       published: loaded.published,
     });
   }
+
+  const isGroup = form.kind === 'group';
+  const { parent, parentId } = decodePlacement(form.placement);
+
+  const options = useMemo(
+    () => buildPlacementOptions(allRows, { kind: form.kind, excludeId: loaded?.id }),
+    [allRows, form.kind, loaded?.id]
+  );
+  const { chain, rootBuiltin } = useMemo(
+    () => ancestorInfo(allRows, parentId),
+    [allRows, parentId]
+  );
 
   const update = <K extends keyof FormState>(key: K, value: FormState[K]) =>
     setForm((f) => ({ ...f, [key]: value }));
@@ -105,8 +159,22 @@ const TsesNemeh = () => {
     setForm((f) => ({
       ...f,
       title,
-      slug: slugTouched ? f.slug : slugify(title),
+      slug: slugTouched || f.kind === 'group' ? f.slug : slugify(title),
     }));
+
+  const onKind = (kind: MenuKind) => {
+    if (isEdit || kind === form.kind) return;
+    // A group has less room below it, so the chosen placement may not fit.
+    const stillValid = buildPlacementOptions(allRows, { kind }).some(
+      (o) => o.value === form.placement
+    );
+    setForm((f) => ({
+      ...f,
+      kind,
+      placement: stillValid ? f.placement : '',
+      slug: kind === 'page' && !slugTouched ? slugify(f.title) : f.slug,
+    }));
+  };
 
   // Same allow-list the server applies on save, so the preview shows exactly
   // what will be stored and served.
@@ -121,18 +189,28 @@ const TsesNemeh = () => {
     setSaving(true);
 
     const payload = {
+      kind: form.kind,
       title: form.title,
-      slug: form.slug,
-      parent: form.parent,
-      content: form.content,
+      slug: isGroup ? undefined : form.slug,
+      parent,
+      parentId,
+      content: isGroup ? '' : form.content,
       sortOrder: form.sortOrder === '' ? 0 : Number(form.sortOrder),
       published: form.published,
     };
 
     try {
-      if (isEdit) await axios.put(`/api/menuPages/${idParam}`, payload);
-      else await axios.post('/api/menuPages', payload);
-      router.push('/duzadmin/tses');
+      if (isEdit) {
+        await axios.put(`/api/menuPages/${idParam}`, payload);
+        router.push('/duzadmin/tses');
+      } else {
+        const res = await axios.post<{ id: number }>('/api/menuPages', payload);
+        // An empty dropdown shows nothing on the site, so go straight on to
+        // adding its first sub-menu.
+        router.push(
+          isGroup ? `/duzadmin/tsesNemeh?parentId=${res.data.id}` : '/duzadmin/tses'
+        );
+      }
     } catch (err) {
       const status = axios.isAxiosError(err) ? err.response?.status : undefined;
       const serverMsg = axios.isAxiosError(err) ? err.response?.data?.error : undefined;
@@ -157,11 +235,14 @@ const TsesNemeh = () => {
   const shownError =
     error || (loadError ? 'Энэ цэсийг олсонгүй эсвэл татаж чадсангүй.' : '');
   const previewTitle = form.title.trim() || 'Цэсний нэр';
+  const pageTitle = isEdit
+    ? isGroup ? 'Цэс засах' : 'Хуудас засах'
+    : parentId !== null || parent ? 'Дэд цэс нэмэх' : 'Шинэ цэс нэмэх';
 
   return (
     <div className="min-h-screen bg-slate-50 pb-20">
       <Head>
-        <title>{isEdit ? 'Цэс засах' : 'Цэс нэмэх'} | Admin</title>
+        <title>{pageTitle} | Admin</title>
       </Head>
 
       <form onSubmit={handleSave}>
@@ -177,7 +258,7 @@ const TsesNemeh = () => {
               </Link>
               <div className="min-w-0">
                 <h1 className="text-lg font-bold text-slate-900 leading-none truncate">
-                  {isEdit ? 'Цэс засах' : 'Шинэ цэс нэмэх'}
+                  {pageTitle}
                 </h1>
                 <p className="eyebrow mt-1.5">
                   Баруун талд сайт дээрх харагдацыг шууд харна
@@ -186,7 +267,7 @@ const TsesNemeh = () => {
             </div>
 
             <div className="flex items-center gap-2">
-              {isEdit && loaded?.published && (
+              {isEdit && !isGroup && loaded?.published && loaded.slug && (
                 <a
                   href={pageHref(loaded.slug)}
                   target="_blank"
@@ -248,6 +329,47 @@ const TsesNemeh = () => {
             >
               <div className="card p-6 space-y-5">
                 <div>
+                  <span className={labelCls}>Төрөл</span>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    {KIND_CARDS.map(({ kind, icon: Icon, title, desc }) => {
+                      const selected = form.kind === kind;
+                      return (
+                        <button
+                          key={kind}
+                          type="button"
+                          disabled={isEdit && !selected}
+                          onClick={() => onKind(kind)}
+                          className={`text-left flex items-start gap-3 rounded-xl border px-4 py-3 transition-all ${
+                            selected
+                              ? 'border-brand-500 bg-brand-50 ring-2 ring-brand-500/20'
+                              : 'border-slate-200 bg-white hover:border-slate-300'
+                          } ${isEdit && !selected ? 'opacity-40 cursor-not-allowed' : ''}`}
+                        >
+                          <span
+                            className={`mt-0.5 w-8 h-8 flex-shrink-0 flex items-center justify-center rounded-lg ${
+                              selected ? 'bg-brand-600 text-white' : 'bg-slate-100 text-slate-500'
+                            }`}
+                          >
+                            <Icon size={15} />
+                          </span>
+                          <span>
+                            <span className="block text-[13px] font-semibold text-slate-900">
+                              {title}
+                            </span>
+                            <span className="block text-[12px] text-slate-500 leading-snug mt-0.5">
+                              {desc}
+                            </span>
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                  {isEdit && (
+                    <p className={hintCls}>Үүссэн цэсийн төрлийг өөрчлөх боломжгүй.</p>
+                  )}
+                </div>
+
+                <div>
                   <label htmlFor="title" className={labelCls}>
                     Цэсний нэр
                   </label>
@@ -261,54 +383,63 @@ const TsesNemeh = () => {
                     className={inputCls}
                   />
                   <p className={hintCls}>
-                    Цэсэнд харагдах нэр бөгөөд хуудасны гарчиг болно.
+                    {isGroup
+                      ? 'Цэсний мөрөнд харагдах нэр.'
+                      : 'Цэсэнд харагдах нэр бөгөөд хуудасны гарчиг болно.'}
                   </p>
                 </div>
 
                 <div>
-                  <label htmlFor="parent" className={labelCls}>
+                  <label htmlFor="placement" className={labelCls}>
                     Цэсний байршил
                   </label>
                   <select
-                    id="parent"
-                    value={form.parent}
-                    onChange={(e) => update('parent', e.target.value)}
+                    id="placement"
+                    value={form.placement}
+                    onChange={(e) => update('placement', e.target.value)}
                     className={inputCls}
                   >
-                    <option value="">Үндсэн цэс (шууд холбоос)</option>
-                    {BUILTIN_MENUS.map((m) => (
-                      <option key={m.id} value={m.id}>
-                        «{m.label}» цэсний дотор
+                    {options.map((o) => (
+                      <option key={o.value} value={o.value}>
+                        {o.label}
                       </option>
                     ))}
+                    {!options.some((o) => o.value === form.placement) && (
+                      <option value={form.placement}>Сонгосон байршил</option>
+                    )}
                   </select>
-                </div>
-
-                <div>
-                  <label htmlFor="slug" className={labelCls}>
-                    Хуудасны хаяг (URL)
-                  </label>
-                  <div className="flex items-stretch">
-                    <span className="inline-flex items-center px-3 text-[13px] text-slate-400 bg-slate-50 border border-r-0 border-slate-200 rounded-l-xl">
-                      /khuudas/
-                    </span>
-                    <input
-                      id="slug"
-                      value={form.slug}
-                      onChange={(e) => {
-                        setSlugTouched(true);
-                        update('slug', e.target.value.toLowerCase());
-                      }}
-                      required
-                      maxLength={MENU_LIMITS.slug}
-                      placeholder="hugjliin-bodlogo"
-                      className={`${inputCls} rounded-l-none`}
-                    />
-                  </div>
                   <p className={hintCls}>
-                    Нэрээс автоматаар үүснэ. Жижиг латин үсэг, тоо, «-» ашиглана.
+                    Цэс хамгийн ихдээ 3 түвшинтэй: цэс → дэд цэс → хуудас.
                   </p>
                 </div>
+
+                {!isGroup && (
+                  <div>
+                    <label htmlFor="slug" className={labelCls}>
+                      Хуудасны хаяг (URL)
+                    </label>
+                    <div className="flex items-stretch">
+                      <span className="inline-flex items-center px-3 text-[13px] text-slate-400 bg-slate-50 border border-r-0 border-slate-200 rounded-l-xl">
+                        /khuudas/
+                      </span>
+                      <input
+                        id="slug"
+                        value={form.slug}
+                        onChange={(e) => {
+                          setSlugTouched(true);
+                          update('slug', e.target.value.toLowerCase());
+                        }}
+                        required
+                        maxLength={MENU_LIMITS.slug}
+                        placeholder="hugjliin-bodlogo"
+                        className={`${inputCls} rounded-l-none`}
+                      />
+                    </div>
+                    <p className={hintCls}>
+                      Нэрээс автоматаар үүснэ. Жижиг латин үсэг, тоо, «-» ашиглана.
+                    </p>
+                  </div>
+                )}
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
                   <div>
@@ -340,7 +471,9 @@ const TsesNemeh = () => {
                         <span className="font-semibold">Сайтад нийтлэх</span>
                         <br />
                         <span className="text-slate-400">
-                          Идэвхгүй бол ноорог хэвээр үлдэнэ.
+                          {isGroup
+                            ? 'Идэвхгүй бол дотор нь байгаа бүх цэс нуугдана.'
+                            : 'Идэвхгүй бол ноорог хэвээр үлдэнэ.'}
                         </span>
                       </span>
                     </label>
@@ -348,15 +481,26 @@ const TsesNemeh = () => {
                 </div>
               </div>
 
-              <div className="card p-6">
-                <label className={labelCls}>Агуулга</label>
-                <div className="rounded-2xl border border-slate-100 bg-slate-50/40 p-1">
-                  <TiptapEditor
-                    content={form.content}
-                    setContent={(html) => update('content', html)}
-                  />
+              {isGroup ? (
+                <div className="card p-6 flex items-start gap-3 bg-amber-50/50 border-amber-100">
+                  <FiInfo className="text-amber-600 mt-0.5 flex-shrink-0" />
+                  <p className="text-[13px] text-slate-600 leading-relaxed">
+                    Энэ цэс өөрөө хуудас биш, зөвхөн dropdown юм. Хадгалсны дараа
+                    дотор нь эхний дэд цэсийг нэмэх хуудас автоматаар нээгдэнэ.
+                    Дотор нь нэг ч цэс байхгүй бол сайтад харагдахгүй.
+                  </p>
                 </div>
-              </div>
+              ) : (
+                <div className="card p-6">
+                  <label className={labelCls}>Агуулга</label>
+                  <div className="rounded-2xl border border-slate-100 bg-slate-50/40 p-1">
+                    <TiptapEditor
+                      content={form.content}
+                      setContent={(html) => update('content', html)}
+                    />
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* ── Live preview ─────────────────────────────────── */}
@@ -365,37 +509,53 @@ const TsesNemeh = () => {
             >
               <div>
                 <p className="eyebrow mb-2">Цэсэнд харагдах байдал</p>
-                <MenuPlacementPreview title={form.title} parent={form.parent} />
+                <MenuPlacementPreview
+                  title={form.title}
+                  kind={form.kind}
+                  parent={parent}
+                  chain={chain}
+                  rootBuiltin={rootBuiltin}
+                />
               </div>
 
-              <div>
-                <p className="eyebrow mb-2">Хуудас сайт дээр иймэрхүү харагдана</p>
-                <div className="rounded-2xl border border-slate-200 bg-white overflow-hidden shadow-[var(--shadow-card)]">
-                  <div className="flex items-center gap-3 px-4 py-2.5 bg-slate-100 border-b border-slate-200">
-                    <div className="flex gap-1.5">
-                      <span className="w-2.5 h-2.5 rounded-full bg-rose-300" />
-                      <span className="w-2.5 h-2.5 rounded-full bg-amber-300" />
-                      <span className="w-2.5 h-2.5 rounded-full bg-emerald-300" />
+              {!isGroup && (
+                <div>
+                  <p className="eyebrow mb-2">Хуудас сайт дээр иймэрхүү харагдана</p>
+                  <div className="rounded-2xl border border-slate-200 bg-white overflow-hidden shadow-[var(--shadow-card)]">
+                    <div className="flex items-center gap-3 px-4 py-2.5 bg-slate-100 border-b border-slate-200">
+                      <div className="flex gap-1.5">
+                        <span className="w-2.5 h-2.5 rounded-full bg-rose-300" />
+                        <span className="w-2.5 h-2.5 rounded-full bg-amber-300" />
+                        <span className="w-2.5 h-2.5 rounded-full bg-emerald-300" />
+                      </div>
+                      <div className="flex-1 truncate rounded-md bg-white px-3 py-1 text-[12px] text-slate-500">
+                        {pageHref(form.slug || 'huudas')}
+                      </div>
+                      {!form.published && (
+                        <span className="badge bg-amber-50 text-amber-700">Ноорог</span>
+                      )}
                     </div>
-                    <div className="flex-1 truncate rounded-md bg-white px-3 py-1 text-[12px] text-slate-500">
-                      {pageHref(form.slug || 'huudas')}
-                    </div>
-                    {!form.published && (
-                      <span className="badge bg-amber-50 text-amber-700">Ноорог</span>
-                    )}
-                  </div>
 
-                  <div className="max-h-[calc(100vh-18rem)] min-h-[360px] overflow-y-auto bg-slate-50">
-                    <CustomPageView title={previewTitle} html={previewHtml} preview />
+                    <div className="max-h-[calc(100vh-22rem)] min-h-[320px] overflow-y-auto bg-slate-50">
+                      <CustomPageView title={previewTitle} html={previewHtml} preview />
+                    </div>
                   </div>
                 </div>
-              </div>
+              )}
             </div>
           </div>
         </div>
       </form>
     </div>
   );
+};
+
+// Remount the form whenever the query changes. After creating a menu we land on
+// ?parentId=<id> to add its first sub-menu; without a fresh mount React would
+// keep the previous entry's state and ignore the preset placement.
+const TsesNemeh = () => {
+  const params = useSearchParams();
+  return <TsesNemehForm key={params.toString()} />;
 };
 
 export default withAuth(TsesNemeh);

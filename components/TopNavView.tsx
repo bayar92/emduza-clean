@@ -13,12 +13,14 @@ import {
   FiBarChart2,
   FiDollarSign,
   FiChevronRight,
+  FiFolder,
 } from 'react-icons/fi';
 
 import {
-  groupCustomPages,
+  buildMenuTree,
   pageHref,
   type CustomMenuPage,
+  type MenuNode,
 } from '@/utils/menuPages';
 
 const STANDALONE_LINKS = [{ href: '/sanal-khuselt', label: 'Санал хүсэлт' }];
@@ -28,10 +30,13 @@ const STANDALONE_LINKS = [{ href: '/sanal-khuselt', label: 'Санал хүсэ�
 // are the choices offered when an admin places a custom page in the menu.
 type NavChild = {
   label: string;
-  href: string;
+  /** Absent on a sub-menu (group), which only holds `children`. */
+  href?: string;
   icon: React.ElementType;
   desc?: string;
   external?: boolean;
+  /** Present on an admin-created sub-menu: opens a flyout / nested accordion. */
+  children?: NavChild[];
 };
 type NavGroup = {
   id: string;
@@ -167,11 +172,36 @@ const navItems: NavGroup[] = [
   },
 ];
 
+/* ─── Helpers ────────────────────────────────────────────── */
+const nodeToChild = (n: MenuNode): NavChild =>
+  n.kind === 'group'
+    ? { label: n.title, icon: FiFolder, children: n.children.map(nodeToChild) }
+    : { label: n.title, href: pageHref(n.slug ?? ''), icon: FiFileText };
+
+/** Is the current page this entry, or anything inside it? */
+const isChildActive = (c: NavChild, pathname: string): boolean =>
+  c.children
+    ? c.children.some((x) => isChildActive(x, pathname))
+    : !!c.href && pathname === c.href;
+
+/** Looser match used for the top-level highlight (prefix, as before). */
+const isGroupActive = (children: NavChild[], pathname: string): boolean =>
+  children.some((c) =>
+    c.children
+      ? isGroupActive(c.children, pathname)
+      : !!c.href && c.href !== '#' && pathname.startsWith(c.href)
+  );
+
+const linkProps = (child: NavChild) =>
+  child.external
+    ? { href: child.href ?? '#', target: '_blank', rel: 'noopener noreferrer' }
+    : { href: child.href ?? '#' };
+
 /* ─── Main component ─────────────────────────────────────── */
 const TopNavView = ({
   customPages = [],
 }: {
-  /** Admin-created menu pages (see /duzadmin/tses). */
+  /** Admin-created menu entries (see /duzadmin/tses). */
   customPages?: CustomMenuPage[];
 }) => {
   const [openId, setOpenId] = useState<string | null>(null);
@@ -181,28 +211,28 @@ const TopNavView = ({
   const [prevPathname, setPrevPathname] = useState(pathname);
   const closeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // Merge admin-created pages into the built-in structure: pages placed in a
-  // dropdown are appended to it; the rest become standalone top-level links.
+  // Merge admin-created entries into the built-in structure: entries placed in
+  // a built-in dropdown are appended to it; new top-level groups become
+  // dropdowns of their own; top-level pages become plain links.
   const { groups, standaloneLinks } = useMemo(() => {
-    const { standalone, byGroup } = groupCustomPages(customPages);
+    const { topLevel, byBuiltin } = buildMenuTree(customPages);
+    const builtIn: NavGroup[] = navItems.map((g) => ({
+      ...g,
+      children: [...g.children, ...(byBuiltin[g.id] ?? []).map(nodeToChild)],
+    }));
+    const customGroups: NavGroup[] = topLevel
+      .filter((n) => n.kind === 'group')
+      .map((n) => ({
+        id: `custom-${n.id}`,
+        label: n.title,
+        children: n.children.map(nodeToChild),
+      }));
+    const customLinks = topLevel
+      .filter((n) => n.kind === 'page')
+      .map((n) => ({ href: pageHref(n.slug ?? ''), label: n.title }));
     return {
-      groups: navItems.map((g) => ({
-        ...g,
-        children: [
-          ...g.children,
-          ...(byGroup[g.id] ?? []).map(
-            (p): NavChild => ({
-              label: p.title,
-              href: pageHref(p.slug),
-              icon: FiFileText,
-            })
-          ),
-        ],
-      })),
-      standaloneLinks: [
-        ...STANDALONE_LINKS,
-        ...standalone.map((p) => ({ href: pageHref(p.slug), label: p.title })),
-      ],
+      groups: [...builtIn, ...customGroups],
+      standaloneLinks: [...STANDALONE_LINKS, ...customLinks],
     };
   }, [customPages]);
 
@@ -217,8 +247,14 @@ const TopNavView = ({
     return () => window.removeEventListener('scroll', onScroll);
   }, []);
 
-  const handleMouseEnter = (id: string) => {
+  // Dropdowns are 18rem wide. Entries added by admins land at the end of the
+  // bar, so open the dropdown towards the left when it would run off screen.
+  const [alignRight, setAlignRight] = useState(false);
+  const handleMouseEnter = (id: string, anchor?: HTMLElement) => {
     if (closeTimer.current) clearTimeout(closeTimer.current);
+    if (anchor) {
+      setAlignRight(anchor.getBoundingClientRect().left + 288 > window.innerWidth - 8);
+    }
     setOpenId(id);
   };
   const handleMouseLeave = () => {
@@ -268,14 +304,12 @@ const TopNavView = ({
             </Link>
 
             {groups.map((item) => {
-              const isActive = item.children.some(
-                (c) => pathname.startsWith(c.href) && c.href !== '#'
-              );
+              const isActive = isGroupActive(item.children, pathname);
               return (
                 <div
                   key={item.id}
                   className="relative"
-                  onMouseEnter={() => handleMouseEnter(item.id)}
+                  onMouseEnter={(e) => handleMouseEnter(item.id, e.currentTarget)}
                   onMouseLeave={handleMouseLeave}
                 >
                   <button
@@ -297,62 +331,16 @@ const TopNavView = ({
 
                   {openId === item.id && (
                     <div
-                      className="absolute top-full left-0 mt-2 w-72 bg-white rounded-2xl shadow-[var(--shadow-modal)] border border-slate-100 py-2 z-50 animate-in fade-in zoom-in-95 duration-150"
+                      className={`absolute top-full ${alignRight ? 'right-0' : 'left-0'} mt-2 w-72 bg-white rounded-2xl shadow-[var(--shadow-modal)] border border-slate-100 py-2 z-50 animate-in fade-in zoom-in-95 duration-150`}
                       onMouseEnter={() => handleMouseEnter(item.id)}
                       onMouseLeave={handleMouseLeave}
                     >
-                      <div className="absolute -top-[6px] left-6 w-3 h-3 bg-white border-t border-l border-slate-100 rotate-45" />
-                      {item.children.map((child, i) => {
-                        const Icon = child.icon;
-                        const isChildActive = pathname === child.href;
-                        const isExternal =
-                          'external' in child ? child.external : false;
-                        const Tag = isExternal ? 'a' : Link;
-                        const extraProps = isExternal
-                          ? {
-                              href: child.href,
-                              target: '_blank',
-                              rel: 'noopener noreferrer',
-                            }
-                          : { href: child.href };
-                        return (
-                          <Tag
-                            key={i}
-                            {...extraProps}
-                            className={`flex items-center gap-3 mx-1.5 px-3 py-2.5 rounded-xl transition-colors group ${
-                              isChildActive
-                                ? 'bg-brand-50 text-brand-700'
-                                : 'hover:bg-slate-50 text-slate-700'
-                            }`}
-                          >
-                            <div
-                              className={`w-9 h-9 flex-shrink-0 flex items-center justify-center rounded-lg transition-colors ${
-                                isChildActive
-                                  ? 'bg-brand-100 text-brand-600'
-                                  : 'bg-slate-100 text-slate-500 group-hover:bg-brand-100 group-hover:text-brand-600'
-                              }`}
-                            >
-                              <Icon size={15} />
-                            </div>
-                            <div className="min-w-0 flex-1">
-                              <div className="text-[13px] font-semibold leading-tight truncate">
-                                {child.label}
-                              </div>
-                              {child.desc && (
-                                <div className="text-[11px] text-slate-400 mt-0.5 truncate">
-                                  {child.desc}
-                                </div>
-                              )}
-                            </div>
-                            {isExternal && (
-                              <FiChevronRight
-                                size={13}
-                                className="ml-auto text-slate-300 flex-shrink-0"
-                              />
-                            )}
-                          </Tag>
-                        );
-                      })}
+                      <div
+                        className={`absolute -top-[6px] ${alignRight ? 'right-6' : 'left-6'} w-3 h-3 bg-white border-t border-l border-slate-100 rotate-45`}
+                      />
+                      {item.children.map((child, i) => (
+                        <DesktopChild key={i} child={child} pathname={pathname} />
+                      ))}
                     </div>
                   )}
                 </div>
@@ -435,7 +423,107 @@ const TopNavView = ({
   );
 };
 
-/* ─── Mobile accordion ───────────────────────────────────── */
+/* ─── Desktop dropdown row (recursive: sub-menus open a flyout) ──────────── */
+const DesktopChild = ({
+  child,
+  pathname,
+}: {
+  child: NavChild;
+  pathname: string;
+}) => {
+  const [open, setOpen] = useState(false);
+  const [flip, setFlip] = useState(false);
+  const rowRef = useRef<HTMLDivElement>(null);
+  const Icon = child.icon;
+  const active = isChildActive(child, pathname);
+
+  const iconBox = (
+    <div
+      className={`w-9 h-9 flex-shrink-0 flex items-center justify-center rounded-lg transition-colors ${
+        active
+          ? 'bg-brand-100 text-brand-600'
+          : 'bg-slate-100 text-slate-500 group-hover:bg-brand-100 group-hover:text-brand-600'
+      }`}
+    >
+      <Icon size={15} />
+    </div>
+  );
+
+  if (child.children) {
+    const enter = () => {
+      // Open towards the left when there is no room on the right.
+      const r = rowRef.current?.getBoundingClientRect();
+      setFlip(!!r && r.right + 296 > window.innerWidth);
+      setOpen(true);
+    };
+    return (
+      <div
+        ref={rowRef}
+        className="relative mx-1.5"
+        onMouseEnter={enter}
+        onMouseLeave={() => setOpen(false)}
+      >
+        <div
+          className={`group flex items-center gap-3 px-3 py-2.5 rounded-xl cursor-default transition-colors ${
+            open || active ? 'bg-brand-50 text-brand-700' : 'text-slate-700 hover:bg-slate-50'
+          }`}
+        >
+          {iconBox}
+          <div className="min-w-0 flex-1 text-[13px] font-semibold leading-tight truncate">
+            {child.label}
+          </div>
+          <FiChevronRight size={14} className="text-slate-400 flex-shrink-0" />
+        </div>
+
+        {open && (
+          // The padding on the near side bridges the gap so the pointer can
+          // travel into the flyout without leaving the hovered row.
+          <div
+            className={`absolute top-0 z-50 ${
+              flip ? 'right-full pr-1.5' : 'left-full pl-1.5'
+            }`}
+          >
+            <div className="w-72 bg-white rounded-2xl shadow-[var(--shadow-modal)] border border-slate-100 py-2">
+              {child.children.map((c, i) => (
+                <DesktopChild key={i} child={c} pathname={pathname} />
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  const Tag = child.external ? 'a' : Link;
+  return (
+    <Tag
+      {...linkProps(child)}
+      className={`flex items-center gap-3 mx-1.5 px-3 py-2.5 rounded-xl transition-colors group ${
+        active ? 'bg-brand-50 text-brand-700' : 'hover:bg-slate-50 text-slate-700'
+      }`}
+    >
+      {iconBox}
+      <div className="min-w-0 flex-1">
+        <div className="text-[13px] font-semibold leading-tight truncate">
+          {child.label}
+        </div>
+        {child.desc && (
+          <div className="text-[11px] text-slate-400 mt-0.5 truncate">
+            {child.desc}
+          </div>
+        )}
+      </div>
+      {child.external && (
+        <FiChevronRight
+          size={13}
+          className="ml-auto text-slate-300 flex-shrink-0"
+        />
+      )}
+    </Tag>
+  );
+};
+
+/* ─── Mobile accordion (recursive) ───────────────────────── */
 const MobileAccordion = ({
   item,
   pathname,
@@ -448,9 +536,7 @@ const MobileAccordion = ({
   setOpenId: (id: string | null) => void;
 }) => {
   const isOpen = openId === item.id;
-  const isActive = item.children.some(
-    (c) => pathname.startsWith(c.href) && c.href !== '#'
-  );
+  const isActive = isGroupActive(item.children, pathname);
 
   return (
     <div className="mb-1">
@@ -470,49 +556,102 @@ const MobileAccordion = ({
       </button>
 
       <div
-        className={`overflow-hidden transition-all duration-200 ${isOpen ? 'max-h-96' : 'max-h-0'}`}
+        className={`overflow-hidden transition-all duration-200 ${isOpen ? 'max-h-[1500px]' : 'max-h-0'}`}
       >
-        <div className="pl-4 pr-2 pb-2 space-y-1">
-          {item.children.map((child, i) => {
-            const Icon = child.icon;
-            const isChildActive = pathname === child.href;
-            const isExternal =
-              'external' in child ? child.external : false;
-            const Tag = isExternal ? 'a' : Link;
-            const extraProps = isExternal
-              ? {
-                  href: child.href,
-                  target: '_blank',
-                  rel: 'noopener noreferrer',
-                }
-              : { href: child.href };
-
-            return (
-              <Tag
-                key={i}
-                {...extraProps}
-                className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-[13px] font-medium transition-colors ${
-                  isChildActive
-                    ? 'bg-brand-50 text-brand-700'
-                    : 'text-slate-600 hover:bg-slate-50'
-                }`}
-              >
-                <div
-                  className={`w-7 h-7 flex-shrink-0 flex items-center justify-center rounded-lg ${
-                    isChildActive
-                      ? 'bg-brand-100 text-brand-600'
-                      : 'bg-slate-100 text-slate-500'
-                  }`}
-                >
-                  <Icon size={13} />
-                </div>
-                {child.label}
-              </Tag>
-            );
-          })}
-        </div>
+        <MobileChildren items={item.children} pathname={pathname} depth={0} />
       </div>
     </div>
+  );
+};
+
+const MobileChildren = ({
+  items,
+  pathname,
+  depth,
+}: {
+  items: NavChild[];
+  pathname: string;
+  depth: number;
+}) => (
+  <div className={`${depth === 0 ? 'pl-4' : 'pl-3'} pr-2 pb-2 space-y-1`}>
+    {items.map((child, i) =>
+      child.children ? (
+        <MobileSubGroup key={i} child={child} pathname={pathname} depth={depth} />
+      ) : (
+        <MobileLeaf key={i} child={child} pathname={pathname} />
+      )
+    )}
+  </div>
+);
+
+const MobileSubGroup = ({
+  child,
+  pathname,
+  depth,
+}: {
+  child: NavChild;
+  pathname: string;
+  depth: number;
+}) => {
+  const [open, setOpen] = useState(false);
+  const Icon = child.icon;
+  const active = isChildActive(child, pathname);
+
+  return (
+    <div>
+      <button
+        onClick={() => setOpen(!open)}
+        className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-[13px] font-medium transition-colors ${
+          active ? 'bg-brand-50 text-brand-700' : 'text-slate-600 hover:bg-slate-50'
+        }`}
+      >
+        <div
+          className={`w-7 h-7 flex-shrink-0 flex items-center justify-center rounded-lg ${
+            active ? 'bg-brand-100 text-brand-600' : 'bg-slate-100 text-slate-500'
+          }`}
+        >
+          <Icon size={13} />
+        </div>
+        <span className="flex-1 text-left">{child.label}</span>
+        <RiArrowDropDownLine
+          size={20}
+          className={`transition-transform duration-200 ${open ? 'rotate-180 text-brand-600' : 'text-slate-400'}`}
+        />
+      </button>
+      {open && child.children && (
+        <MobileChildren items={child.children} pathname={pathname} depth={depth + 1} />
+      )}
+    </div>
+  );
+};
+
+const MobileLeaf = ({
+  child,
+  pathname,
+}: {
+  child: NavChild;
+  pathname: string;
+}) => {
+  const Icon = child.icon;
+  const active = isChildActive(child, pathname);
+  const Tag = child.external ? 'a' : Link;
+
+  return (
+    <Tag
+      {...linkProps(child)}
+      className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-[13px] font-medium transition-colors ${
+        active ? 'bg-brand-50 text-brand-700' : 'text-slate-600 hover:bg-slate-50'
+      }`}
+    >
+      <div
+        className={`w-7 h-7 flex-shrink-0 flex items-center justify-center rounded-lg ${
+          active ? 'bg-brand-100 text-brand-600' : 'bg-slate-100 text-slate-500'
+        }`}
+      >
+        <Icon size={13} />
+      </div>
+      {child.label}
+    </Tag>
   );
 };
 

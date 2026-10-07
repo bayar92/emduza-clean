@@ -184,20 +184,31 @@ model ContactInfo {
   updatedAt  DateTime @updatedAt
 }
 
-// Pages created by admins from /duzadmin/tses. Each one becomes a menu entry
-// in the top navigation (a standalone link, or inside one of the built-in
-// dropdowns named by `parent`) and is served at /khuudas/<slug>.
+// Entries of the admin-managed navigation menu (/duzadmin/tses). A row is
+// either a "page" (has content, served at /khuudas/<slug>) or a "group" (a
+// dropdown that only holds other entries). Entries nest up to 3 levels deep:
+//
+//   parent = ""        parentId = null   -> top-level entry in the nav bar
+//   parent = "about"   parentId = null   -> inside a built-in dropdown
+//   parent = ""        parentId = <id>   -> inside another group (sub-menu)
+//
+// `parent` is only for the built-in dropdowns (about | news | law | report |
+// dans, see utils/menuPages.ts); the two placements are mutually exclusive.
 model MenuPage {
-  id        Int      @id @default(autoincrement())
-  title     String
-  slug      String   @unique
-  // "" = standalone top-level link, otherwise the id of a built-in dropdown
-  // (about | news | law | report | dans). See utils/menuPages.ts.
-  parent    String   @default("")
-  // Sanitized HTML produced by the rich-text editor.
-  content   String   @default("")
-  sortOrder Int      @default(0)
-  published Boolean  @default(true)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id         Int        @id @default(autoincrement())
+  title      String
+  // "page" | "group"
+  kind       String     @default("page")
+  // Null for groups (they have no page of their own).
+  slug       String?    @unique
+  parent     String     @default("")
+  parentId   Int?
+  parentPage MenuPage?  @relation("MenuTree", fields: [parentId], references: [id], onDelete: Restrict)
+  children   MenuPage[] @relation("MenuTree")
+  // Sanitized HTML produced by the rich-text editor (pages only).
+  content    String     @default("")
+  sortOrder  Int        @default(0)
+  published  Boolean    @default(true)
+  createdAt  DateTime   @default(now())
+  updatedAt  DateTime   @updatedAt
 }

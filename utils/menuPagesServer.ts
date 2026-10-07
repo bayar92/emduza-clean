@@ -1,5 +1,5 @@
 import { prisma } from '@/utils/prisma';
-import type { CustomMenuPage } from '@/utils/menuPages';
+import type { CustomMenuPage, MenuKind } from '@/utils/menuPages';
 
 let loggedFailure = false;
 
@@ -10,11 +10,20 @@ let loggedFailure = false;
  */
 export async function getMenuPages(): Promise<CustomMenuPage[]> {
   try {
-    return await prisma.menuPage.findMany({
+    const rows = await prisma.menuPage.findMany({
       where: { published: true },
       orderBy: [{ sortOrder: 'asc' }, { id: 'asc' }],
-      select: { id: true, title: true, slug: true, parent: true, sortOrder: true },
+      select: {
+        id: true,
+        title: true,
+        kind: true,
+        slug: true,
+        parent: true,
+        parentId: true,
+        sortOrder: true,
+      },
     });
+    return rows.map((r) => ({ ...r, kind: r.kind as MenuKind }));
   } catch (err) {
     // Every page render calls this, so log once instead of flooding the logs.
     if (!loggedFailure) {
@@ -25,8 +34,8 @@ export async function getMenuPages(): Promise<CustomMenuPage[]> {
   }
 }
 
-/** A published page by slug for the public route, or null. May throw on DB errors. */
+/** A published *page* (not a group) by slug for the public route, or null. May throw on DB errors. */
 export async function getPublishedPage(slug: string) {
   const page = await prisma.menuPage.findUnique({ where: { slug } });
-  return page && page.published ? page : null;
+  return page && page.kind === 'page' && page.published ? page : null;
 }

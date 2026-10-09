@@ -94,6 +94,43 @@ describe("POST /api/reports", () => {
     expect(res.status).toBe(201);
   });
 
+  // The route only reads `file.size`, `file.name` and `file.arrayBuffer()`. A
+  // File's size cannot be faked through FormData -> Request (it is re-parsed
+  // from the bytes), so hand the handler a request whose formData() returns a
+  // stand-in file of the size under test instead of allocating 100MB+.
+  const requestWithFileOfSize = (bytes: number) => {
+    const file = {
+      name: "big.pdf",
+      size: bytes,
+      type: "application/pdf",
+      arrayBuffer: async () => new ArrayBuffer(8),
+    };
+    const fields: Record<string, unknown> = { title: "2024 он", year: "2024", type: "annual", file };
+    return { formData: async () => ({ get: (k: string) => fields[k] ?? null }) } as unknown as Request;
+  };
+
+  it("accepts a large document (77MB PDF)", async () => {
+    const { writeFile } = await import("fs/promises");
+    mockPrisma.report.create.mockResolvedValue(REPORT);
+    const res = await POST(requestWithFileOfSize(77 * 1024 * 1024));
+    expect(res.status).toBe(201);
+    expect(writeFile).toHaveBeenCalledTimes(1);
+  });
+
+  it("accepts a file of exactly 100MB but rejects one byte more, writing nothing", async () => {
+    const { writeFile } = await import("fs/promises");
+    mockPrisma.report.create.mockResolvedValue(REPORT);
+    expect((await POST(requestWithFileOfSize(100 * 1024 * 1024))).status).toBe(201);
+
+    vi.mocked(writeFile).mockClear();
+    mockPrisma.report.create.mockClear();
+    const res = await POST(requestWithFileOfSize(100 * 1024 * 1024 + 1));
+    expect(res.status).toBe(400);
+    expect((await res.json()).error).toMatch(/100MB/);
+    expect(writeFile).not.toHaveBeenCalled();
+    expect(mockPrisma.report.create).not.toHaveBeenCalled();
+  });
+
   it("returns 400 when required fields are missing", async () => {
     const form = new FormData();
     form.append("title", "only title");

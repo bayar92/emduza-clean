@@ -5,6 +5,8 @@ import { writeFile, mkdir, unlink } from 'fs/promises';
 import path from 'path';
 import { getUploadDir } from '@/utils/uploadDir';
 
+const MAX_REPORT_FILE_SIZE = 100 * 1024 * 1024;
+
 function invalidate(type?: string) {
   if (type === 'financial' || !type) revalidatePath('/taillan/sankhuu');
   if (type === 'activity' || !type) revalidatePath('/taillan/uil-ajillagaa');
@@ -44,6 +46,14 @@ export async function POST(req: Request) {
 
   let filename: string | null = null;
   if (file && file.size > 0) {
+    // Same cap as the Эрх зүй documents. Uploads used to be stopped at 10MB by
+    // the framework; now that larger bodies get through, this is the real limit.
+    if (file.size > MAX_REPORT_FILE_SIZE) {
+      return NextResponse.json(
+        { error: 'Файлын хэмжээ 100MB-с хэтрэхгүй байх ёстой' },
+        { status: 400 }
+      );
+    }
     filename = await saveFile(file, file.name);
   }
 

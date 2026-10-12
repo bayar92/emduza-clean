@@ -3,6 +3,12 @@ import React, { useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { FiArrowRight, FiCalendar, FiChevronRight } from 'react-icons/fi';
+import {
+  CATEGORY_HURALDAAN,
+  CATEGORY_HYNALT,
+  CATEGORY_TEKHNIK,
+  sameCategory,
+} from '@/utils/newsCategories';
 
 export type NewsItem = {
   id: string | number;
@@ -30,14 +36,14 @@ const FeaturedNewsClient = ({ news }: { news: NewsItem[] }) => {
   const getFilteredNews = (): NewsItem[] => {
     if (activeTab === 'tab1') return news.slice(-4).reverse();
     const categoryMap: Record<string, string> = {
-      tab2: 'ЭМДҮЗ-ийн хуралдаан, хуралдааны тойм',
-      tab3: 'Техникийн хорооны мэдээлэл',
-      tab4: 'Хяналт, үнэлгээний талаар',
+      tab2: CATEGORY_HURALDAAN,
+      tab3: CATEGORY_TEKHNIK,
+      tab4: CATEGORY_HYNALT,
     };
     const category = categoryMap[activeTab];
     if (!category) return [];
     return news
-      .filter((item) => item.category === category)
+      .filter((item) => sameCategory(item.category, category))
       .slice(-4)
       .reverse();
   };

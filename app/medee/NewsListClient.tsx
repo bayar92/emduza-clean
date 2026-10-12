@@ -3,6 +3,7 @@ import React, { useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { FiCalendar, FiChevronLeft, FiChevronRight } from 'react-icons/fi';
+import { normalizeCategory } from '@/utils/newsCategories';
 
 type NewsItem = {
   id: number;
@@ -53,7 +54,7 @@ export default function NewsListClient({ news }: { news: NewsItem[] }) {
     <>
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
         {current.map((item) => {
-          const badgeColor = categoryColors[item.category] ?? 'bg-blue-600';
+          const badgeColor = categoryColors[normalizeCategory(item.category)] ?? 'bg-blue-600';
           const imgSrc = normPath(item.coverImage);
           return (
             <Link
@@ -80,7 +81,7 @@ export default function NewsListClient({ news }: { news: NewsItem[] }) {
                   <span
                     className={`px-2.5 py-1 ${badgeColor} text-white text-[10px] font-bold rounded-full uppercase tracking-wider`}
                   >
-                    {item.category}
+                    {normalizeCategory(item.category)}
                   </span>
                 </div>
               </div>

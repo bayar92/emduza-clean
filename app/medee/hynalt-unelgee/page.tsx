@@ -4,6 +4,7 @@ import FooterNavBar from '@/components/FooterNavBar';
 import Link from 'next/link';
 import { FiChevronRight, FiBarChart2 } from 'react-icons/fi';
 import NewsListClient from '../NewsListClient';
+import { categoryValues, CATEGORY_HYNALT } from '@/utils/newsCategories';
 
 export const dynamic = 'force-dynamic';
 
@@ -16,7 +17,7 @@ const categoryLinks = [
 
 export default async function HynaltUnelgeePage() {
   const allNews = await prisma.news.findMany({
-    where: { category: 'Хяналт, үнэлгээний талаар' },
+    where: { category: { in: categoryValues(CATEGORY_HYNALT) } },
     orderBy: { date: 'desc' },
     select: {
       id: true,

@@ -4,6 +4,7 @@ import FooterNavBar from '@/components/FooterNavBar';
 import Link from 'next/link';
 import { FiChevronRight, FiSettings } from 'react-icons/fi';
 import NewsListClient from '../NewsListClient';
+import { categoryValues, CATEGORY_TEKHNIK } from '@/utils/newsCategories';
 
 export const dynamic = 'force-dynamic';
 
@@ -16,7 +17,7 @@ const categoryLinks = [
 
 export default async function TechniikiinKhorooPage() {
   const allNews = await prisma.news.findMany({
-    where: { category: 'Техникийн хорооны мэдээлэл' },
+    where: { category: { in: categoryValues(CATEGORY_TEKHNIK) } },
     orderBy: { date: 'desc' },
     select: {
       id: true,

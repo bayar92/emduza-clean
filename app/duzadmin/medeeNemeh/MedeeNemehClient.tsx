@@ -7,6 +7,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import TiptapEditor from '@/components/TiptapEditor';
 import Head from 'next/head';
 import { useDialog } from '@/components/useDialog';
+import { NEWS_CATEGORY_OPTIONS, normalizeCategory } from '@/utils/newsCategories';
 import { jsonFetcher } from '@/utils/swr';
 
 type NewsRecord = {
@@ -64,7 +65,8 @@ export default function MedeeNemehClient() {
     setSeededId(loadedItem.id);
     setEditId(loadedItem.id);
     setTitle(loadedItem.title);
-    setCategory(loadedItem.category);
+    // News saved under an old spelling is shown (and re-saved) under the current name.
+    setCategory(normalizeCategory(loadedItem.category));
     setContent(loadedItem.content);
     setDate(loadedItem.date ? loadedItem.date.split('T')[0] : '');
     setCoverPreview(loadedItem.coverImage);
@@ -215,15 +217,14 @@ export default function MedeeNemehClient() {
                       onChange={(e) => setCategory(e.target.value)}
                       className={`${inputCls} pl-10`}
                     >
-                      <option value="Мэдээлэл">Мэдээлэл</option>
-                      <option value="Онцлох мэдээ">Онцлох мэдээ</option>
-                      <option value="ЭМДҮЗ-ийн хуралдаан">
-                        ЭМДҮЗ-ийн хуралдаан
-                      </option>
-                      <option value="Техникийн хорооны мэдээлэл">
-                        Техникийн хорооны мэдээлэл
-                      </option>
-                      <option value="Хяналт үнэлгээ">Хяналт үнэлгээ</option>
+                      {NEWS_CATEGORY_OPTIONS.map((o) => (
+                        <option key={o.value} value={o.value}>
+                          {o.label}
+                        </option>
+                      ))}
+                      {!NEWS_CATEGORY_OPTIONS.some((o) => o.value === category) && (
+                        <option value={category}>{category}</option>
+                      )}
                     </select>
                   </div>
                 </div>

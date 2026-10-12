@@ -9,6 +9,7 @@ import NewsImagesSlider from './NewsImagesSlider';
 import NewsComments from './NewsComments';
 import LatestNewsSidebar from './LatestNewsSidebar';
 import ShareButtons from '@/components/ShareButtons';
+import { normalizeCategory } from '@/utils/newsCategories';
 
 
 export const dynamic = 'force-dynamic';
@@ -66,7 +67,7 @@ export default async function NewsDetailPage({ params }: PageProps) {
 
   const imgSrc = normPath(news.coverImage);
   const badgeClass =
-    categoryColors[news.category] ?? 'bg-gray-100 text-gray-600';
+    categoryColors[normalizeCategory(news.category)] ?? 'bg-gray-100 text-gray-600';
 
   return (
     <div className="min-h-screen bg-[#F8FAFC]">
@@ -123,7 +124,7 @@ export default async function NewsDetailPage({ params }: PageProps) {
                 className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-bold mb-3 ${badgeClass}`}
               >
                 <FiTag size={10} />
-                {news.category}
+                {normalizeCategory(news.category)}
               </span>
               <h1 className="text-2xl md:text-[28px] font-black text-gray-900 leading-snug">
                 {news.title}
